@@ -18,7 +18,8 @@ const AIFeatures = () => {
   const [qaForm, setQaForm] = useState({
     question: '',
     context: '',
-    documentId: ''
+    documentId: '',
+    documentTitle: ''
   });
 
   const [availableDocuments, setAvailableDocuments] = useState([]);
@@ -72,12 +73,20 @@ const AIFeatures = () => {
     setResult(null);
 
     try {
+      // Convert camelCase to snake_case for backend compatibility
+      const backendData = {
+        question: qaForm.question,
+        context: qaForm.context,
+        document_id: qaForm.documentId,
+        document_title: qaForm.documentTitle
+      };
+
       const response = await fetch('http://localhost:8000/api/ai/qa', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(qaForm),
+        body: JSON.stringify(backendData),
       });
 
       if (!response.ok) {
@@ -374,7 +383,14 @@ const AIFeatures = () => {
                 </label>
                 <select
                   value={qaForm.documentId}
-                  onChange={(e) => setQaForm({...qaForm, documentId: e.target.value})}
+                  onChange={(e) => {
+                    const selectedDoc = availableDocuments.find(doc => doc.doc_id === e.target.value);
+                    setQaForm({
+                      ...qaForm, 
+                      documentId: e.target.value,
+                      documentTitle: selectedDoc ? selectedDoc.title : ''
+                    });
+                  }}
                   className="w-full px-4 py-3 border-2 border-secondary-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 >
                   <option value="">-- Choose a saved document --</option>

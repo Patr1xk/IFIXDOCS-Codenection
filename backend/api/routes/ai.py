@@ -807,11 +807,14 @@ async def answer_question(request: QARequest):
                 if document:
                     document_content = document.content
                     document_title = document.title
-                    logger.info(f"Using document '{document_title}' for Q&A")
+                    logger.info(f"Using document '{document_title}' for Q&A with content length: {len(document_content)}")
                 else:
                     logger.warning(f"Document with ID {request.document_id} not found")
             except Exception as e:
                 logger.error(f"Error fetching document: {e}")
+        
+        # Debug: Log the document content status
+        logger.info(f"Document content available: {bool(document_content)}, Length: {len(document_content)}")
         
         # Combine document content with additional context
         full_context = f"""
@@ -821,22 +824,43 @@ async def answer_question(request: QARequest):
         Additional Context: {request.context}
         """
         
-        # Get MCP context for the question
+        # Get MCP context for the question with document content
         mcp_context = await mcp_client.get_context(
             request.question,
-            "qa"
+            "qa",
+            document_content,
+            document_title
         )
         
-        enhanced_prompt = f"""
-        Document Context: {full_context}
-        MCP Context: {mcp_context.get('context', '')}
+        # Debug: Log MCP context status
+        logger.info(f"MCP context has document content: {mcp_context.get('has_document_content', False)}")
+        logger.info(f"MCP context confidence: {mcp_context.get('confidence', 0)}")
         
-        Question: {request.question}
+        # Enhanced prompt with document-aware context
+        if mcp_context.get('has_document_content', False):
+            enhanced_prompt = f"""
+            Document: {document_title}
+            
+            Relevant Document Content:
+            {mcp_context.get('context', '')}
+            
+            Question: {request.question}
+            
+            Please provide a detailed answer based on the document content above. 
+            If the answer is found in the document, reference specific parts of it.
+            If the answer is not in the document, say so clearly and provide helpful guidance.
+            """
+        else:
+            enhanced_prompt = f"""
+            Document Context: {full_context}
+            MCP Context: {mcp_context.get('context', '')}
         
-        Please provide a comprehensive answer based on the document content. 
-        If the answer is not in the provided document context, indicate this clearly 
-        and provide general guidance.
-        """
+            Question: {request.question}
+        
+            Please provide a comprehensive answer based on the document content. 
+            If the answer is not in the provided document context, indicate this clearly 
+            and provide general guidance.
+            """
         
         if settings.huggingface_api_key:
             # Use Hugging Face for Q&A with better model selection
@@ -883,8 +907,11 @@ async def answer_question(request: QARequest):
                         temperature=0.4
                     )
                 
-                # Generate related questions based on the context
-                related_questions = await _generate_related_questions(document_content, request.question)
+                # Generate related questions based on the context and document content
+                if document_content:
+                    related_questions = await _generate_document_aware_related_questions(document_content, request.question, mcp_context)
+                else:
+                    related_questions = await _generate_related_questions(document_content, request.question)
                 
                 # Enhance with MCP if available
                 enhanced_answer = await mcp_client.enhance_response(
@@ -945,9 +972,22 @@ async def answer_question(request: QARequest):
             logger.info("Using enhanced fallback for Q&A (no API key)")
             question_lower = request.question.lower()
             
-            # If we have document content, try to extract relevant information
+            # If we have document content, use enhanced document-aware response
             if document_content:
-                answer = await _generate_document_aware_answer(request.question, document_content, document_title)
+                # Use MCP context to generate better document-aware answers
+                mcp_context = await mcp_client.get_context(
+                    request.question,
+                    "qa",
+                    document_content,
+                    document_title
+                )
+                
+                if mcp_context.get('has_document_content', False):
+                    # Use the MCP context to generate a better answer
+                    relevant_content = mcp_context.get('context', '')
+                    answer = f"Based on the document '{document_title}', here's what I found:\n\n{relevant_content}\n\nThis information directly addresses your question about the document content."
+                else:
+                    answer = await _generate_document_aware_answer(request.question, document_content, document_title)
             else:
                 # Smart fallback based on question type with more comprehensive keyword detection
                 fallback_answers = {
@@ -1049,6 +1089,61 @@ async def _generate_document_aware_answer(question: str, document_content: str, 
     except Exception as e:
         logger.error(f"Error generating document-aware answer: {e}")
         return f"I found the document '{document_title}' but couldn't extract specific information for your question. Try rephrasing or looking for different keywords."
+
+async def _generate_document_aware_related_questions(document_content: str, original_question: str, mcp_context: Dict[str, Any]) -> List[str]:
+    """Generate document-aware related questions based on document content and MCP context"""
+    try:
+        related_questions = []
+        
+        # Extract keywords from MCP context
+        keywords = mcp_context.get('keywords', [])
+        
+        # Generate questions based on document content
+        lines = document_content.split('\n')
+        topics = []
+        
+        for line in lines:
+            line_lower = line.lower().strip()
+            if line_lower.startswith(('#', '##', '###')):
+                topics.append(line.strip())
+            elif any(keyword in line_lower for keyword in ['function', 'class', 'method', 'api', 'endpoint', 'config', 'setup']):
+                topics.append(line.strip())
+        
+        # Generate questions based on topics found in the document
+        if topics:
+            for topic in topics[:3]:
+                if 'function' in topic.lower():
+                    related_questions.append("What does this function do?")
+                elif 'class' in topic.lower():
+                    related_questions.append("How do I use this class?")
+                elif 'api' in topic.lower():
+                    related_questions.append("What are the API endpoints?")
+                elif 'config' in topic.lower():
+                    related_questions.append("How do I configure this?")
+                elif 'setup' in topic.lower():
+                    related_questions.append("What are the setup requirements?")
+        
+        # Add questions based on keywords
+        for keyword in keywords[:3]:
+            if keyword in ['function', 'method']:
+                related_questions.append(f"What are the {keyword}s in this document?")
+            elif keyword in ['api', 'endpoint']:
+                related_questions.append(f"How do I use the {keyword}s?")
+            elif keyword in ['config', 'setup']:
+                related_questions.append(f"What {keyword} options are available?")
+        
+        # Add general document questions
+        related_questions.extend([
+            "What are the main sections of this document?",
+            "Are there any examples in this document?",
+            "What are the key concepts covered?"
+        ])
+        
+        return related_questions[:5]  # Return max 5 questions
+        
+    except Exception as e:
+        logger.error(f"Error generating document-aware related questions: {e}")
+        return await _generate_related_questions(document_content, original_question)
 
 async def _generate_related_questions(document_content: str, original_question: str) -> List[str]:
     """Generate related questions based on document content and original question"""

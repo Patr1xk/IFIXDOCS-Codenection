@@ -1464,14 +1464,11 @@ class TranslationManager:
                     if clean_word in translations[lang_pair]:
                         translated_word = translations[lang_pair][clean_word]
                         translated_words.append(translated_word)
-                    else:
-                        translated_words.append(word)
-                
-                translated = ' '.join(translated_words)
-                return translated
         else:
-            # For unsupported language pairs, return content with language indicator
-            return f"[{target_lang.upper()}] {content}"
+            translated_words.append(word)
+        
+        translated = ' '.join(translated_words)
+        return translated
     
     async def detect_language(self, request: LanguageDetectionRequest) -> LanguageDetectionResponse:
         """Detect the language of content"""

@@ -28,13 +28,13 @@ SmartDocs is a comprehensive documentation platform that addresses real-world do
 - Git
 
 ### **Step 1: Clone and Setup**
-```bash
+   ```bash
 git clone <your-repo-url>
 cd "Cursor Backend"
-```
+   ```
 
 ### **Step 2: Backend Setup**
-```bash
+   ```bash
 # Navigate to backend
 cd backend
 
@@ -48,7 +48,7 @@ venv311\Scripts\activate
 source venv311/bin/activate
 
 # Install dependencies
-pip install -r requirements.txt
+   pip install -r requirements.txt
 
 # Create .env file (already done)
 # Your .env file should contain:
@@ -60,7 +60,7 @@ MCP_SERVER_URL=your_token_here
 ```
 
 ### **Step 3: Frontend Setup**
-```bash
+   ```bash
 # Navigate to frontend
 cd ../frontend
 
@@ -73,15 +73,15 @@ npm install
 ### **Option 1: Full Setup (Recommended for Demo)**
 
 **Terminal 1 - Backend Server:**
-```bash
+   ```bash
 cd backend
-python main.py
-```
+   python main.py
+   ```
 ✅ Backend will be available at: http://localhost:8000
 
 **Terminal 2 - Frontend Server:**
-```bash
-cd frontend
+   ```bash
+   cd frontend
 npm run dev
 ```
 ✅ Frontend will be available at: http://localhost:5173
@@ -96,17 +96,17 @@ python mcp_server.py
 ### **Option 2: Basic Setup (Backend + Frontend Only)**
 
 **Terminal 1 - Backend:**
-```bash
+   ```bash
 cd backend
 python main.py
-```
+   ```
 
 **Terminal 2 - Frontend:**
-```bash
+   ```bash
 cd frontend
-npm run dev
-```
-
+   npm run dev
+   ```
+   
 ## 🌐 **Access Your Application**
 
 - **Frontend**: http://localhost:5173

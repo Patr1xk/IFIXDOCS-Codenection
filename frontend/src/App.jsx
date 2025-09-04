@@ -126,13 +126,13 @@ const AppContent = () => {
         activeSection={activeSection} 
         onSectionChange={setActiveSection} 
       />
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col min-h-0">
         <Header 
           onSearch={handleSearch}
           currentLanguage={currentLanguage}
           onLanguageChange={handleLanguageChange}
         />
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto bg-secondary-50">
           {renderContent()}
         </main>
       </div>
