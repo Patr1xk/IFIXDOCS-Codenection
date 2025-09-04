@@ -27,3 +27,11 @@ yarn-error.log*
 # OS
 .DS_Store
 Thumbs.db
+
+#ReadMe
+DEMO_GUIDE.md
+DEMO_QUICK_REFERENCE.md
+HACKATHON_SETUP.md
+FREE_API_SETUP.md
+env.example
+MCP_SETUP.md
