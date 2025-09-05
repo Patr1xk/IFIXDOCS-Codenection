@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Globe, Languages, MessageSquare, FileText, Loader2, CheckCircle, AlertCircle, Download, Settings } from 'lucide-react';
+import { Globe, Languages, MessageSquare, FileText, Loader2, CheckCircle, AlertCircle, Download } from 'lucide-react';
 
 const Multilingual = () => {
   const [activeTab, setActiveTab] = useState('translate');
@@ -7,6 +7,16 @@ const Multilingual = () => {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [supportedLanguages, setSupportedLanguages] = useState([]);
+  
+  // MCP Integration states
+  const [availableDocuments, setAvailableDocuments] = useState([]);
+  const [selectedDocument, setSelectedDocument] = useState({
+    id: '',
+    title: '',
+    content: ''
+  });
+
+
 
   // Form states
   const [translateForm, setTranslateForm] = useState({
@@ -29,9 +39,10 @@ const Multilingual = () => {
     preserveTechnicalTerms: true
   });
 
-  // Load supported languages on component mount
+  // Load supported languages and documents on component mount
   useEffect(() => {
     fetchSupportedLanguages();
+    fetchAvailableDocuments();
   }, []);
 
   const fetchSupportedLanguages = async () => {
@@ -54,6 +65,52 @@ const Multilingual = () => {
       setSupportedLanguages(getDefaultLanguages());
     }
   };
+
+  const fetchAvailableDocuments = async () => {
+    try {
+      const response = await fetch('http://localhost:8000/api/docs/');
+      if (response.ok) {
+        const documents = await response.json();
+        setAvailableDocuments(documents);
+      }
+    } catch (error) {
+      console.error('Error fetching documents:', error);
+    }
+  };
+
+  const handleDocumentSelect = (docId) => {
+    const selectedDoc = availableDocuments.find(doc => doc.doc_id === docId);
+    setSelectedDocument({
+      id: docId,
+      title: selectedDoc ? selectedDoc.title : '',
+      content: selectedDoc ? selectedDoc.content : ''
+    });
+    
+    // Auto-fill the content based on active tab
+    if (selectedDoc) {
+      if (activeTab === 'translate') {
+        setTranslateForm(prev => ({
+          ...prev,
+          content: selectedDoc.content || selectedDoc.title || '',
+          context: `Document: ${selectedDoc.title}\nType: ${selectedDoc.content_type || 'Documentation'}`
+        }));
+      } else if (activeTab === 'detect') {
+        setDetectForm(prev => ({
+          ...prev,
+          content: selectedDoc.content || selectedDoc.title || '',
+          context: `Document: ${selectedDoc.title}\nType: ${selectedDoc.content_type || 'Documentation'}`
+        }));
+      } else if (activeTab === 'localize') {
+        setLocalizeForm(prev => ({
+          ...prev,
+          content: selectedDoc.content || selectedDoc.title || '',
+          context: `Document: ${selectedDoc.title}\nType: ${selectedDoc.content_type || 'Documentation'}`
+        }));
+      }
+    }
+  };
+
+
 
   const getFlagForLanguage = (code) => {
     const flagMap = {
@@ -180,6 +237,8 @@ const Multilingual = () => {
     }
   };
 
+
+
   const tabs = [
     { id: 'translate', label: 'Translation', icon: MessageSquare },
     { id: 'detect', label: 'Language Detection', icon: Languages },
@@ -196,9 +255,13 @@ const Multilingual = () => {
           </div>
           <h1 className="text-3xl font-bold text-secondary-900">Multilingual Support</h1>
         </div>
-        <p className="text-lg text-secondary-600 max-w-2xl mx-auto">
+        <p className="text-lg text-secondary-600 max-w-2xl mx-auto mb-6">
           Break language barriers with AI-powered translation, language detection, and localization tools
         </p>
+        
+        
+
+
       </div>
 
       {/* Tab Navigation */}
@@ -224,28 +287,76 @@ const Multilingual = () => {
         </div>
       </div>
 
+
+
       {/* Content */}
       <div className="max-w-4xl mx-auto">
-        {activeTab === 'translate' && (
-          <div className="bg-white rounded-xl p-8 shadow-sm border border-secondary-200">
-            <div className="text-center mb-8">
-              <h2 className="text-2xl font-bold text-secondary-900 mb-2">Smart Translation</h2>
-              <p className="text-secondary-600">Translate your documentation into multiple languages with AI-powered accuracy</p>
-            </div>
+                 {activeTab === 'translate' && (
+           <div className="bg-white rounded-xl p-8 shadow-sm border border-secondary-200">
+             <div className="text-center mb-8">
+               <h2 className="text-2xl font-bold text-secondary-900 mb-2">Smart Translation</h2>
+               <p className="text-secondary-600">Translate your documentation into multiple languages with AI-powered accuracy</p>
+             </div>
 
-            <form onSubmit={handleTranslate} className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium text-secondary-700 mb-2">
-                  Content to Translate
-                </label>
-                <textarea
-                  value={translateForm.content}
-                  onChange={(e) => setTranslateForm({...translateForm, content: e.target.value})}
-                  placeholder="Enter the text you want to translate..."
-                  className="w-full h-32 px-4 py-3 border-2 border-secondary-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200"
-                  required
-                />
-              </div>
+             {/* Document Selection */}
+             <div className="bg-primary-50 rounded-xl p-6 mb-8">
+               <div className="flex items-center mb-4">
+                 <FileText className="w-6 h-6 text-primary-600 mr-2" />
+                 <h3 className="text-lg font-semibold text-primary-900">Select Document (Optional)</h3>
+               </div>
+               
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                 <div>
+                   <label className="block text-sm font-medium text-secondary-700 mb-2">
+                     Choose Document
+                   </label>
+                   <select
+                     value={selectedDocument.id}
+                     onChange={(e) => handleDocumentSelect(e.target.value)}
+                     className="w-full px-4 py-3 border-2 border-secondary-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                   >
+                     <option value="">-- Select a document for translation --</option>
+                     {availableDocuments.map((doc) => (
+                       <option key={doc.doc_id} value={doc.doc_id}>
+                         {doc.title} ({doc.content_type})
+                       </option>
+                     ))}
+                   </select>
+                 </div>
+                 
+                 {selectedDocument.id && (
+                   <div className="bg-white rounded-lg p-4 border border-primary-200">
+                     <h4 className="font-medium text-primary-900 mb-2">Selected Document</h4>
+                     <p className="text-primary-700">{selectedDocument.title}</p>
+                     <p className="text-sm text-primary-600 mt-1">
+                       Content length: {selectedDocument.content.length} characters
+                     </p>
+                   </div>
+                 )}
+               </div>
+             </div>
+
+             <form onSubmit={handleTranslate} className="space-y-6">
+
+                             <div>
+                 <label className="block text-sm font-medium text-secondary-700 mb-2">
+                   Content to Translate
+                 </label>
+                                   {translateForm.content.length > 450 && (
+                    <div className="mb-2 p-2 bg-warning-50 border border-warning-200 rounded-lg">
+                      <p className="text-sm text-warning-700">
+                        ⚠️ Content is long ({translateForm.content.length} characters). For optimal translation, consider using shorter text or the system will truncate it automatically.
+                      </p>
+                    </div>
+                  )}
+                                  <textarea
+                    value={translateForm.content}
+                    onChange={(e) => setTranslateForm({...translateForm, content: e.target.value})}
+                    placeholder={selectedDocument.id ? "Content from selected document (editable)" : "Enter the text you want to translate..."}
+                    className="w-full h-32 px-4 py-3 border-2 border-secondary-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200"
+                    required
+                  />
+               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
@@ -389,26 +500,72 @@ const Multilingual = () => {
           </div>
         )}
 
-        {activeTab === 'detect' && (
-          <div className="bg-white rounded-xl p-8 shadow-sm border border-secondary-200">
-            <div className="text-center mb-8">
-              <h2 className="text-2xl font-bold text-secondary-900 mb-2">Language Detection</h2>
-              <p className="text-secondary-600">Automatically detect the language of your content with high accuracy</p>
-            </div>
+                 {activeTab === 'detect' && (
+           <div className="bg-white rounded-xl p-8 shadow-sm border border-secondary-200">
+             <div className="text-center mb-8">
+               <h2 className="text-2xl font-bold text-secondary-900 mb-2">Language Detection</h2>
+               <p className="text-secondary-600">Automatically detect the language of your content with high accuracy</p>
+             </div>
 
-            <form onSubmit={handleDetectLanguage} className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium text-secondary-700 mb-2">
-                  Content to Analyze
-                </label>
-                <textarea
-                  value={detectForm.content}
-                  onChange={(e) => setDetectForm({...detectForm, content: e.target.value})}
-                  placeholder="Enter text to detect its language..."
-                  className="w-full h-32 px-4 py-3 border-2 border-secondary-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200"
-                  required
-                />
-              </div>
+             {/* Document Selection */}
+             <div className="bg-primary-50 rounded-xl p-6 mb-8">
+               <div className="flex items-center mb-4">
+                 <FileText className="w-6 h-6 text-primary-600 mr-2" />
+                 <h3 className="text-lg font-semibold text-primary-900">Select Document (Optional)</h3>
+               </div>
+               
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                 <div>
+                   <label className="block text-sm font-medium text-secondary-700 mb-2">
+                     Choose Document
+                   </label>
+                   <select
+                     value={selectedDocument.id}
+                     onChange={(e) => handleDocumentSelect(e.target.value)}
+                     className="w-full px-4 py-3 border-2 border-secondary-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                   >
+                     <option value="">-- Select a document for language detection --</option>
+                     {availableDocuments.map((doc) => (
+                       <option key={doc.doc_id} value={doc.doc_id}>
+                         {doc.title} ({doc.content_type})
+                       </option>
+                     ))}
+                   </select>
+                 </div>
+                 
+                 {selectedDocument.id && (
+                   <div className="bg-white rounded-lg p-4 border border-primary-200">
+                     <h4 className="font-medium text-primary-900 mb-2">Selected Document</h4>
+                     <p className="text-primary-700">{selectedDocument.title}</p>
+                     <p className="text-sm text-primary-600 mt-1">
+                       Content length: {selectedDocument.content.length} characters
+                     </p>
+                   </div>
+                 )}
+               </div>
+             </div>
+
+             <form onSubmit={handleDetectLanguage} className="space-y-6">
+
+                             <div>
+                 <label className="block text-sm font-medium text-secondary-700 mb-2">
+                   Content to Analyze
+                 </label>
+                                   {detectForm.content.length > 800 && (
+                    <div className="mb-2 p-2 bg-warning-50 border border-warning-200 rounded-lg">
+                      <p className="text-sm text-warning-700">
+                        ⚠️ Content is long ({detectForm.content.length} characters). For optimal language detection, consider using shorter text.
+                      </p>
+                    </div>
+                  )}
+                                  <textarea
+                    value={detectForm.content}
+                    onChange={(e) => setDetectForm({...detectForm, content: e.target.value})}
+                    placeholder={selectedDocument.id ? "Content from selected document (editable)" : "Enter text to detect its language..."}
+                    className="w-full h-32 px-4 py-3 border-2 border-secondary-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200"
+                    required
+                  />
+               </div>
 
               <div>
                 <label className="block text-sm font-medium text-secondary-700 mb-2">
@@ -497,26 +654,72 @@ const Multilingual = () => {
           </div>
         )}
 
-        {activeTab === 'localize' && (
-          <div className="bg-white rounded-xl p-8 shadow-sm border border-secondary-200">
-            <div className="text-center mb-8">
-              <h2 className="text-2xl font-bold text-secondary-900 mb-2">Content Localization</h2>
-              <p className="text-secondary-600">Adapt your content for specific regions and cultures with intelligent localization</p>
-            </div>
+                 {activeTab === 'localize' && (
+           <div className="bg-white rounded-xl p-8 shadow-sm border border-secondary-200">
+             <div className="text-center mb-8">
+               <h2 className="text-2xl font-bold text-secondary-900 mb-2">Content Localization</h2>
+               <p className="text-secondary-600">Adapt your content for specific regions and cultures with intelligent localization</p>
+             </div>
 
-            <form onSubmit={handleLocalize} className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium text-secondary-700 mb-2">
-                  Content to Localize
-                </label>
-                <textarea
-                  value={localizeForm.content}
-                  onChange={(e) => setLocalizeForm({...localizeForm, content: e.target.value})}
-                  placeholder="Enter the content you want to localize..."
-                  className="w-full h-32 px-4 py-3 border-2 border-secondary-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200"
-                  required
-                />
-              </div>
+             {/* Document Selection */}
+             <div className="bg-primary-50 rounded-xl p-6 mb-8">
+               <div className="flex items-center mb-4">
+                 <FileText className="w-6 h-6 text-primary-600 mr-2" />
+                 <h3 className="text-lg font-semibold text-primary-900">Select Document (Optional)</h3>
+               </div>
+               
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                 <div>
+                   <label className="block text-sm font-medium text-secondary-700 mb-2">
+                     Choose Document
+                   </label>
+                   <select
+                     value={selectedDocument.id}
+                     onChange={(e) => handleDocumentSelect(e.target.value)}
+                     className="w-full px-4 py-3 border-2 border-secondary-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                   >
+                     <option value="">-- Select a document for localization --</option>
+                     {availableDocuments.map((doc) => (
+                       <option key={doc.doc_id} value={doc.doc_id}>
+                         {doc.title} ({doc.content_type})
+                       </option>
+                     ))}
+                   </select>
+                 </div>
+                 
+                 {selectedDocument.id && (
+                   <div className="bg-white rounded-lg p-4 border border-primary-200">
+                     <h4 className="font-medium text-primary-900 mb-2">Selected Document</h4>
+                     <p className="text-primary-700">{selectedDocument.title}</p>
+                     <p className="text-sm text-primary-600 mt-1">
+                       Content length: {selectedDocument.content.length} characters
+                     </p>
+                   </div>
+                 )}
+               </div>
+             </div>
+
+             <form onSubmit={handleLocalize} className="space-y-6">
+
+                             <div>
+                 <label className="block text-sm font-medium text-secondary-700 mb-2">
+                   Content to Localize
+                 </label>
+                                   {localizeForm.content.length > 800 && (
+                    <div className="mb-2 p-2 bg-warning-50 border border-warning-200 rounded-lg">
+                      <p className="text-sm text-warning-700">
+                        ⚠️ Content is long ({localizeForm.content.length} characters). For optimal localization, consider using shorter text or the system will truncate it automatically.
+                      </p>
+                    </div>
+                  )}
+                                  <textarea
+                    value={localizeForm.content}
+                    onChange={(e) => setLocalizeForm({...localizeForm, content: e.target.value})}
+                    placeholder={selectedDocument.id ? "Content from selected document (editable)" : "Enter the content you want to localize..."}
+                    className="w-full h-32 px-4 py-3 border-2 border-secondary-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200"
+                    required
+                  />
+               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
@@ -663,6 +866,8 @@ const Multilingual = () => {
           </div>
         )}
       </div>
+
+
     </div>
   );
 };

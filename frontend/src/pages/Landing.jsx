@@ -43,6 +43,9 @@ export default function Landing() {
               </div>
               <Link
                 to="/app"
+                onClick={() => {
+                  sessionStorage.setItem('fromLanding', 'true');
+                }}
                 style={{
                   backgroundColor: '#2563eb',
                   color: 'white',
@@ -100,6 +103,9 @@ export default function Landing() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', alignItems: 'center' }}>
             <Link
               to="/app"
+              onClick={() => {
+                sessionStorage.setItem('fromLanding', 'true');
+              }}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',

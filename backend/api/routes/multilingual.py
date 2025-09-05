@@ -176,6 +176,11 @@ class TranslationManager:
     async def translate_content(self, request: TranslationRequest) -> TranslationResponse:
         """Translate content between languages"""
         try:
+            # Check content length and warn if too long
+            content_length = len(request.content)
+            if content_length > 1000:
+                logger.warning(f"Content length ({content_length} chars) exceeds recommended limit for translation")
+            
             # Handle auto-detection
             actual_source_language = request.source_language
             if request.source_language == "auto":
@@ -258,7 +263,7 @@ class TranslationManager:
             # 1. Try Hugging Face API first (if API key available)
             if settings.huggingface_api_key:
                 translation = await self._try_huggingface_translation(content, source_lang, target_lang)
-                if translation:
+                if translation and "QUERY LENGTH LIMIT EXCEEDED" not in translation:
                     return translation
             
             # 2. Try Google Translate API (if available)
@@ -320,7 +325,7 @@ class TranslationManager:
                 ("ja", "en"): "Helsinki-NLP/opus-mt-jap-en",
                 ("ko", "en"): "Helsinki-NLP/opus-mt-ko-en",
                 ("ar", "en"): "Helsinki-NLP/opus-mt-ar-en",
-                ("hi", "en"): "Helsinki-NLP/opus-mt-hi-en",
+                ("hi", "en"): "Helsinki-NLP/opus-mt-en-hi",
                 ("pt", "en"): "Helsinki-NLP/opus-mt-pt-en",
                 ("ru", "en"): "Helsinki-NLP/opus-mt-ru-en",
                 ("it", "en"): "Helsinki-NLP/opus-mt-it-en",
@@ -333,10 +338,16 @@ class TranslationManager:
             if not model:
                 return None
             
+            # Truncate content to avoid query length limits
+            # Start with a more conservative limit to avoid API errors
+            truncated_content = content[:800]  # Reduced to 800 characters to be safe
+            if len(content) > 800:
+                truncated_content += "..."  # Add ellipsis to indicate truncation
+            
             payload = {
-                "inputs": content[:500],
+                "inputs": truncated_content,
                 "parameters": {
-                    "max_length": len(content) + 100
+                    "max_length": min(len(truncated_content) + 100, 1024)  # More conservative max_length
                 }
             }
             
@@ -351,8 +362,54 @@ class TranslationManager:
                     result = response.json()
                     if isinstance(result, list) and len(result) > 0:
                         translation = result[0].get('translation_text', '')
-                        if translation and translation != content:
+                        # Check if the translation is actually an error message
+                        if translation and "QUERY LENGTH LIMIT EXCEEDED" in translation:
+                            logger.warning(f"Hugging Face API returned length limit error, trying with shorter content")
+                            # Try with much shorter content
+                            shorter_content = content[:300]
+                            payload["inputs"] = shorter_content
+                            payload["parameters"]["max_length"] = min(len(shorter_content) + 50, 512)
+                            
+                            response = await client.post(
+                                f"https://api-inference.huggingface.co/models/{model}",
+                                json=payload,
+                                headers=headers
+                            )
+                            
+                            if response.status_code == 200:
+                                result = response.json()
+                                if isinstance(result, list) and len(result) > 0:
+                                    translation = result[0].get('translation_text', '')
+                                    if translation and "QUERY LENGTH LIMIT EXCEEDED" not in translation:
+                                        translation += " [Content heavily truncated for translation]"
+                                        return translation
+                            return None
+                        elif translation and translation != truncated_content:
+                            # If content was truncated, add a note
+                            if len(content) > 450:
+                                translation += " [Content truncated for translation]"
                             return translation
+                elif response.status_code == 413:  # Payload too large
+                    logger.warning(f"Content too long for Hugging Face API, trying with shorter content")
+                    # Try with even shorter content
+                    shorter_content = content[:800]
+                    payload["inputs"] = shorter_content
+                    payload["parameters"]["max_length"] = min(len(shorter_content) + 100, 1024)
+                    
+                    response = await client.post(
+                        f"https://api-inference.huggingface.co/models/{model}",
+                        json=payload,
+                        headers=headers
+                    )
+                    
+                    if response.status_code == 200:
+                        result = response.json()
+                        if isinstance(result, list) and len(result) > 0:
+                            translation = result[0].get('translation_text', '')
+                            if translation and translation != shorter_content:
+                                translation += " [Content significantly truncated for translation]"
+                                return translation
+                
                 return None
                 
         except Exception as e:
@@ -401,8 +458,13 @@ class TranslationManager:
                 "https://translate.fortytwo-it.com"
             ]
             
+            # Truncate content to avoid length limits
+            truncated_content = content[:2000]
+            if len(content) > 2000:
+                truncated_content += "..."
+            
             payload = {
-                "q": content,
+                "q": truncated_content,
                 "source": source_lang,
                 "target": target_lang,
                 "format": "text"
@@ -417,7 +479,10 @@ class TranslationManager:
                             result = response.json()
                             if "translatedText" in result:
                                 translation = result["translatedText"]
-                                if translation and translation != content:
+                                if translation and translation != truncated_content:
+                                    # Add note if content was truncated
+                                    if len(content) > 2000:
+                                        translation += " [Content truncated for translation]"
                                     return translation
                 except:
                     continue
@@ -433,9 +498,14 @@ class TranslationManager:
         try:
             import httpx
             
+            # Truncate content to avoid length limits
+            truncated_content = content[:2000]
+            if len(content) > 2000:
+                truncated_content += "..."
+            
             url = "https://api.mymemory.translated.net/get"
             params = {
-                "q": content,
+                "q": truncated_content,
                 "langpair": f"{source_lang}|{target_lang}"
             }
             
@@ -446,7 +516,10 @@ class TranslationManager:
                     result = response.json()
                     if "responseData" in result and "translatedText" in result["responseData"]:
                         translation = result["responseData"]["translatedText"]
-                        if translation and translation != content:
+                        if translation and translation != truncated_content:
+                            # Add note if content was truncated
+                            if len(content) > 2000:
+                                translation += " [Content truncated for translation]"
                             return translation
                 return None
                 
@@ -457,7 +530,7 @@ class TranslationManager:
     def _enhanced_fallback_translate(self, content: str, source_lang: str, target_lang: str) -> str:
         """Enhanced fallback translation that can handle ANY sentence"""
         # Comprehensive fallback translations with thousands of words and phrases
-        translations = {
+            translations = {
             ("en", "es"): {
                 # Common words
                 "Hello": "Hola", "Hi": "Hola", "Goodbye": "Adiós", "Bye": "Adiós",
@@ -1028,7 +1101,7 @@ class TranslationManager:
     def _fallback_translate(self, content: str, source_lang: str, target_lang: str) -> str:
         """Fallback translation when AI is not available"""
         # Comprehensive fallback translations
-        translations = {
+            translations = {
             ("en", "es"): {
                 # Common words
                 "Hello": "Hola", "Hi": "Hola", "Goodbye": "Adiós", "Bye": "Adiós",
@@ -1465,10 +1538,13 @@ class TranslationManager:
                         translated_word = translations[lang_pair][clean_word]
                         translated_words.append(translated_word)
         else:
-            translated_words.append(word)
-        
-        translated = ' '.join(translated_words)
-        return translated
+                        translated_words.append(word)
+                translated = ' '.join(translated_words)
+            
+            return translated
+        else:
+            # For unsupported language pairs, return content with language indicator
+            return f"[{target_lang.upper()}] {content}"
     
     async def detect_language(self, request: LanguageDetectionRequest) -> LanguageDetectionResponse:
         """Detect the language of content"""

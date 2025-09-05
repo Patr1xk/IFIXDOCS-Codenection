@@ -361,6 +361,102 @@ async def github_webhook(background_tasks: BackgroundTasks, payload: Dict[str, A
         logger.error(f"GitHub webhook error: {e}")
         raise HTTPException(status_code=500, detail="Webhook processing failed")
 
+@router.post("/demo/simulate-changes")
+async def simulate_code_changes():
+    """Demo endpoint to simulate code changes and show drift detection"""
+    try:
+        # Simulate recent changes to Flask repository
+        simulated_changes = [
+            {
+                "file_path": "src/flask/app.py",
+                "change_type": "modified",
+                "component_name": "Flask Application",
+                "timestamp": datetime.now().isoformat(),
+                "changes": [
+                    "Added new `before_request` decorator",
+                    "Updated error handling mechanism",
+                    "Modified route registration logic"
+                ]
+            },
+            {
+                "file_path": "src/flask/blueprints.py",
+                "change_type": "added",
+                "component_name": "Blueprint System",
+                "timestamp": datetime.now().isoformat(),
+                "changes": [
+                    "New blueprint registration method",
+                    "Enhanced URL prefix handling"
+                ]
+            },
+            {
+                "file_path": "src/flask/cli.py",
+                "change_type": "modified",
+                "component_name": "CLI Commands",
+                "timestamp": datetime.now().isoformat(),
+                "changes": [
+                    "Updated `flask run` command options",
+                    "Added new `flask shell` features"
+                ]
+            }
+        ]
+        
+        # Create notifications for each change
+        notifications = []
+        for change in simulated_changes:
+            notification = ChangeNotificationRequest(
+                component_name=change["component_name"],
+                file_path=change["file_path"],
+                change_type=change["change_type"],
+                timestamp=change["timestamp"],
+                description=f"Changes detected: {', '.join(change['changes'])}"
+            )
+            notification_id = change_monitor.add_notification(notification)
+            notifications.append({
+                "notification_id": notification_id,
+                "change": change
+            })
+        
+        # Generate drift detection results
+        drift_result = {
+            "total_files": 15,
+            "drifted_files": [
+                {
+                    "file_path": "docs/app.rst",
+                    "doc_file": "docs/app.rst",
+                    "drift_type": "outdated",
+                    "severity": "high",
+                    "last_modified": datetime.now().isoformat(),
+                    "reason": "App.py was modified but docs weren't updated"
+                },
+                {
+                    "file_path": "docs/blueprints.rst",
+                    "doc_file": None,
+                    "drift_type": "missing",
+                    "severity": "medium",
+                    "last_modified": datetime.now().isoformat(),
+                    "reason": "New blueprint features lack documentation"
+                }
+            ],
+            "drift_score": 0.4,
+            "recommendations": [
+                "High documentation drift detected. Consider comprehensive review.",
+                "Update app.rst to reflect new before_request decorator",
+                "Create documentation for new blueprint features"
+            ]
+        }
+        
+        return {
+            "message": "Simulated code changes detected!",
+            "changes": simulated_changes,
+            "notifications": notifications,
+            "drift_detection": drift_result,
+            "demo_mode": True
+        }
+        
+    except Exception as e:
+        logger.error(f"Demo simulation error: {e}")
+        raise HTTPException(status_code=500, detail="Demo simulation failed")
+
 @router.get("/health")
 async def maintenance_health_check():
     """Check maintenance services health"""

@@ -1,6 +1,7 @@
 # Environment variables
 .env
 backend/.env
+env.example
 
 # Python
 __pycache__/
@@ -33,5 +34,5 @@ DEMO_GUIDE.md
 DEMO_QUICK_REFERENCE.md
 HACKATHON_SETUP.md
 FREE_API_SETUP.md
-env.example
 MCP_SETUP.md
+PRESENTATION_SLIDES.md

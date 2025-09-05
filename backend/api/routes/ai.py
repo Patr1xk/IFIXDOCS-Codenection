@@ -617,9 +617,9 @@ async def summarize_content(request: SummarizeRequest):
         word_count = len(summary.split())
         sentence_count = len(summary.split('.'))
         avg_sentence_length = word_count / sentence_count if sentence_count > 0 else 0
-        
-        return SummarizeResponse(
-            summary=summary,
+            
+            return SummarizeResponse(
+                summary=summary,
             original_length=original_length,
             summary_length=summary_length,
             reduction_percentage=reduction,
@@ -851,11 +851,11 @@ async def answer_question(request: QARequest):
             If the answer is not in the document, say so clearly and provide helpful guidance.
             """
         else:
-            enhanced_prompt = f"""
+        enhanced_prompt = f"""
             Document Context: {full_context}
             MCP Context: {mcp_context.get('context', '')}
         
-            Question: {request.question}
+        Question: {request.question}
         
             Please provide a comprehensive answer based on the document content. 
             If the answer is not in the provided document context, indicate this clearly 

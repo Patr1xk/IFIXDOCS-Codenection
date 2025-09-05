@@ -32,6 +32,10 @@
     @apply border-2 border-secondary-300 hover:border-primary-500 text-secondary-700 hover:text-primary-600 font-semibold py-3 px-6 rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 hover:bg-primary-50;
   }
 
+  .btn-warning {
+    @apply bg-warning-600 hover:bg-warning-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-warning-500 focus:ring-offset-2 shadow-sm hover:shadow-md transform hover:-translate-y-0.5;
+  }
+
   .btn-sm {
     @apply py-2 px-4 text-sm;
   }

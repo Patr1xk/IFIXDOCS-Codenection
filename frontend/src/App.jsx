@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
 import Sidebar from "./components/Sidebar";
 import Header from "./components/Header";
 import Dashboard from "./components/Dashboard";
@@ -23,6 +23,20 @@ const AppContent = () => {
   const [activeSection, setActiveSection] = useState('dashboard');
   const [currentLanguage, setCurrentLanguage] = useState('en');
   const { showTutorial, closeTutorial, completeTutorial, startTutorial, hasCompletedTutorial, resetTutorial } = useTutorial();
+  const location = useLocation();
+
+  // Auto-start tutorial when coming from landing page
+  useEffect(() => {
+    const fromLanding = sessionStorage.getItem('fromLanding');
+    if (fromLanding === 'true' && !hasCompletedTutorial) {
+      // Clear the flag
+      sessionStorage.removeItem('fromLanding');
+      // Start tutorial after a short delay to let the page load
+      setTimeout(() => {
+        startTutorial();
+      }, 800);
+    }
+  }, [startTutorial, hasCompletedTutorial]);
 
   const handleSearch = (query) => {
     console.log('Search query:', query);
@@ -61,6 +75,14 @@ const AppContent = () => {
             <p className="text-lg text-secondary-600 max-w-2xl mx-auto mb-8">
               Let's get you started with a quick tour of the platform and show you how to make the most of our documentation tools.
             </p>
+            {sessionStorage.getItem('fromLanding') === 'true' && !hasCompletedTutorial && (
+              <div className="max-w-2xl mx-auto mb-8 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <div className="flex items-center justify-center space-x-2 text-blue-700">
+                  <div className="w-4 h-4 bg-blue-500 rounded-full animate-pulse"></div>
+                  <span className="font-medium">Tutorial starting automatically in a moment...</span>
+                </div>
+              </div>
+            )}
             <div className="max-w-2xl mx-auto space-y-4">
               <div className="p-4 bg-primary-50 rounded-lg border border-primary-200">
                 <h3 className="font-semibold text-primary-900 mb-2">Quick Start Guide</h3>
