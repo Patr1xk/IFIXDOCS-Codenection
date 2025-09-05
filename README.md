@@ -1,4 +1,4 @@
-# 🚀 **SmartDocs - Intelligent Documentation Assistant**
+# 🚀 **IFastDocs - Intelligent Documentation Assistant**
 
 > **AI-powered documentation platform that simplifies writing, speeds up reading, and makes maintenance easy**
 
