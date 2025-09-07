@@ -11,6 +11,8 @@
 
 **Slides Link**: https://www.canva.com/design/DAGxulzoKQ8/7qL1hJbwLiEukTPJWbOKdA/edit?utm_content=DAGxulzoKQ8&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton 
 
+**Video Link**: https://youtu.be/6Ek2swx9p50
+
 ## 🎯 **Project Overview**
 
 IFastDocs is a comprehensive documentation platform that addresses real-world documentation challenges:
