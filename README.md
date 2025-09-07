@@ -9,7 +9,7 @@
 
 **Challenge Addressed**: IFastDocs tackles the real-world documentation challenges faced by development teams, providing intelligent solutions for creating, maintaining, and accessing documentation efficiently.
 
-**Slides Link**:https://www.canva.com/design/DAGxulzoKQ8/7qL1hJbwLiEukTPJWbOKdA/editutm_content=DAGxulzoKQ8&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton 
+**Slides Link**: https://www.canva.com/design/DAGxulzoKQ8/7qL1hJbwLiEukTPJWbOKdA/edit?utm_content=DAGxulzoKQ8&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton 
 
 ## 🎯 **Project Overview**
 
