@@ -12,7 +12,9 @@ const AIFeatures = () => {
     content: '',
     maxLength: 300,
     summaryType: 'comprehensive',
-    focus: 'general'
+    focus: 'general',
+    documentId: '',
+    documentTitle: ''
   });
 
   const [qaForm, setQaForm] = useState({
@@ -38,11 +40,18 @@ const AIFeatures = () => {
     setResult(null);
 
     try {
+      // Validate that we have content (either from document or manual input)
+      if (!summarizeForm.content.trim()) {
+        throw new Error('Please select a document or provide content to summarize');
+      }
+
       // Convert camelCase to snake_case for backend compatibility
       const backendData = {
         content: summarizeForm.content,
         max_length: summarizeForm.maxLength,
-        summary_type: summarizeForm.summaryType
+        summary_type: summarizeForm.summaryType,
+        document_id: summarizeForm.documentId,
+        document_title: summarizeForm.documentTitle
       };
 
       const response = await fetch('http://localhost:8000/api/ai/summarize', {
@@ -211,15 +220,65 @@ const AIFeatures = () => {
             <form onSubmit={handleSummarize} className="space-y-6">
               <div>
                 <label className="block text-sm font-medium text-secondary-700 mb-2">
-                  Content to Summarize
+                  Select Document (Optional)
+                </label>
+                <select
+                  value={summarizeForm.documentId}
+                  onChange={(e) => {
+                    const selectedDoc = availableDocuments.find(doc => doc.doc_id === e.target.value);
+                    setSummarizeForm({
+                      ...summarizeForm, 
+                      documentId: e.target.value,
+                      documentTitle: selectedDoc ? selectedDoc.title : '',
+                      content: selectedDoc ? selectedDoc.content : summarizeForm.content
+                    });
+                  }}
+                  className="w-full px-4 py-3 border-2 border-secondary-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                >
+                  <option value="">-- Choose a saved document --</option>
+                  {availableDocuments.map((doc) => (
+                    <option key={doc.doc_id} value={doc.doc_id}>
+                      {doc.title} ({doc.content_type})
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-secondary-500 mt-1">
+                  Select a document to automatically use its content for summarization. Leave empty to paste your own content below.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-secondary-700 mb-2">
+                  Content to Summarize {summarizeForm.documentId ? '(Auto-filled from selected document)' : ''}
                 </label>
                 <textarea
                   value={summarizeForm.content}
                   onChange={(e) => setSummarizeForm({...summarizeForm, content: e.target.value})}
-                  placeholder="Paste your long documentation content here..."
-                  className="w-full h-32 px-4 py-3 border-2 border-secondary-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200"
-                  required
+                  placeholder={summarizeForm.documentId ? "Content automatically loaded from selected document..." : "Paste your long documentation content here..."}
+                  className={`w-full h-32 px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 ${
+                    summarizeForm.documentId ? 'border-primary-300 bg-primary-50' : 'border-secondary-300'
+                  }`}
+                  required={!summarizeForm.documentId}
                 />
+                {summarizeForm.documentId && (
+                  <div className="flex items-center justify-between mt-1">
+                    <p className="text-xs text-primary-600">
+                      ✅ Content loaded from "{summarizeForm.documentTitle}". You can edit it if needed.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setSummarizeForm({
+                        ...summarizeForm,
+                        documentId: '',
+                        documentTitle: '',
+                        content: ''
+                      })}
+                      className="text-xs text-secondary-500 hover:text-secondary-700 underline"
+                    >
+                      Clear Document
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -285,7 +344,7 @@ const AIFeatures = () => {
                 ) : (
                   <div className="flex items-center justify-center">
                     <FileText className="w-5 h-5 mr-2" />
-                    Generate Summary
+                    {summarizeForm.documentId ? 'Summarize Document' : 'Generate Summary'}
                   </div>
                 )}
               </button>
@@ -299,7 +358,12 @@ const AIFeatures = () => {
                     <CheckCircle className="w-6 h-6 text-success-600 mr-2" />
                     <h3 className="text-lg font-semibold text-success-900">Summary Generated</h3>
                   </div>
-                  <div className="text-sm text-success-700">
+                  <div className="flex items-center space-x-2">
+                    {result.document_used && (
+                      <div className="text-sm text-success-700">
+                        📄 {result.document_title}
+                      </div>
+                    )}
                     {result.summary_type && (
                       <span className="px-2 py-1 bg-success-100 rounded text-xs font-medium">
                         {result.summary_type.charAt(0).toUpperCase() + result.summary_type.slice(1)}

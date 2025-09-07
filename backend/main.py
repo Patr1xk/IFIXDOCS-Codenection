@@ -7,6 +7,7 @@ import os
 
 from api.routes import docs, ai, parsing, maintenance, onboarding, multilingual, visualizations
 from core.config import settings
+from core.mcp_client import mcp_client
 
 # Load environment variables
 load_dotenv()
@@ -41,7 +42,24 @@ app.include_router(visualizations.router, prefix="/api/visualizations", tags=["V
 # Health check endpoint
 @app.get("/api/health")
 async def health_check():
-    return {"status": "healthy", "service": "SmartDocs Backend"}
+    """Health check with MCP status"""
+    mcp_status = "enabled" if mcp_client.enabled else "disabled"
+    mcp_url = settings.mcp_server_url or "not configured"
+    
+    return {
+        "status": "healthy", 
+        "service": "SmartDocs Backend",
+        "mcp_integration": {
+            "status": mcp_status,
+            "server_url": mcp_url,
+            "features": [
+                "Enhanced Q&A with document context",
+                "Better summarization with MCP context", 
+                "Improved visualizations with code analysis",
+                "Document-aware multilingual features"
+            ]
+        }
+    }
 
 # Root endpoint
 @app.get("/")

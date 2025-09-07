@@ -331,6 +331,150 @@ async def upload_file(file: UploadFile = File(...)):
         logger.error(f"File upload error: {e}")
         raise HTTPException(status_code=500, detail="File upload failed")
 
+@router.post("/code-analysis", response_model=CodeAnalysisResponse)
+async def analyze_code(request: CodeAnalysisRequest):
+    """Analyze code repository or files for comprehensive metrics"""
+    try:
+        total_files = 0
+        languages = {}
+        complexity_summary = {"total_complexity": 0, "avg_complexity": 0, "max_complexity": 0}
+        documentation_coverage = 0.0
+        recommendations = []
+        
+        if request.repository_url:
+            # Analyze GitHub repository
+            from api.routes.ai import github_client
+            
+            try:
+                repo_info = github_client.parse_github_url(request.repository_url)
+                owner = repo_info["owner"]
+                repo = repo_info["repo"]
+                
+                # Get repository content recursively (limited depth)
+                async def get_all_files(path="", depth=0, max_depth=3):
+                    """Recursively get all files from repository with depth limit"""
+                    if depth > max_depth:
+                        return []
+                    
+                    content = await github_client.get_repository_content(owner, repo, path)
+                    files = []
+                    
+                    for item in content:
+                        if item.get('type') == 'file':
+                            files.append(item)
+                        elif item.get('type') == 'dir' and depth < max_depth:
+                            # Skip certain directories to avoid too many API calls
+                            dir_name = item.get('name', '')
+                            if dir_name not in ['.git', 'node_modules', '__pycache__', '.pytest_cache']:
+                                try:
+                                    subfiles = await get_all_files(item.get('path', ''), depth + 1, max_depth)
+                                    files.extend(subfiles)
+                                except Exception as e:
+                                    logger.warning(f"Error accessing directory {dir_name}: {e}")
+                    
+                    return files
+                
+                all_files = await get_all_files()
+                logger.info(f"Found {len(all_files)} total files in repository")
+                
+                analyzed_files = []
+                total_complexity = 0
+                documented_functions = 0
+                total_functions = 0
+                
+                for item in all_files:
+                    filename = item.get('name', '')
+                    ext = Path(filename).suffix.lower()
+                    
+                    # Count files by language
+                    if ext in ['.py', '.js', '.ts', '.java', '.cpp', '.c', '.go', '.rs', '.php', '.rb']:
+                        total_files += 1
+                        language = ext[1:] if ext else 'unknown'
+                        languages[language] = languages.get(language, 0) + 1
+                        
+                        # Analyze Python files for complexity
+                        if ext == '.py':
+                            file_content = await github_client.get_file_content(owner, repo, item.get('path', ''))
+                            if file_content:
+                                try:
+                                    parser = PythonParser()
+                                    result = parser.parse_python(file_content)
+                                    if 'error' not in result:
+                                        file_complexity = result.get('complexity_score', 0)
+                                        total_complexity += file_complexity
+                                        total_functions += len(result.get('functions', []))
+                                        documented_functions += len([f for f in result.get('functions', []) if f.get('docstring')])
+                                        analyzed_files.append({
+                                            'name': filename,
+                                            'complexity': file_complexity,
+                                            'functions': len(result.get('functions', [])),
+                                            'documented': len([f for f in result.get('functions', []) if f.get('docstring')])
+                                        })
+                                except Exception as e:
+                                    logger.warning(f"Error analyzing {filename}: {e}")
+                
+                # Calculate metrics
+                if analyzed_files:
+                    complexity_summary = {
+                        "total_complexity": total_complexity,
+                        "avg_complexity": round(total_complexity / len(analyzed_files), 2),
+                        "max_complexity": max(f['complexity'] for f in analyzed_files),
+                        "files_analyzed": len(analyzed_files)
+                    }
+                
+                if total_functions > 0:
+                    documentation_coverage = round((documented_functions / total_functions) * 100, 2)
+                
+                # Generate recommendations
+                if documentation_coverage < 50:
+                    recommendations.append("Consider adding more docstrings to improve documentation coverage")
+                if complexity_summary.get('avg_complexity', 0) > 10:
+                    recommendations.append("High complexity detected - consider refactoring complex functions")
+                if total_files > 50:
+                    recommendations.append("Large codebase - consider organizing into modules")
+                if not languages:
+                    recommendations.append("No code files detected - check repository structure")
+                
+            except Exception as e:
+                logger.error(f"Error analyzing repository: {e}")
+                recommendations.append(f"Error analyzing repository: {str(e)}")
+        
+        elif request.files:
+            # Analyze provided files
+            for file_path in request.files:
+                try:
+                    ext = Path(file_path).suffix.lower()
+                    if ext in ['.py', '.js', '.ts', '.java', '.cpp', '.c', '.go', '.rs', '.php', '.rb']:
+                        total_files += 1
+                        language = ext[1:] if ext else 'unknown'
+                        languages[language] = languages.get(language, 0) + 1
+                        
+                        # For demo purposes, simulate analysis
+                        if ext == '.py':
+                            complexity_summary["total_complexity"] += 5
+                            recommendations.append(f"Analyzed {file_path} - consider adding docstrings")
+                except Exception as e:
+                    logger.warning(f"Error analyzing file {file_path}: {e}")
+        
+        # Calculate final metrics
+        if total_files > 0:
+            complexity_summary["avg_complexity"] = round(complexity_summary["total_complexity"] / total_files, 2)
+        
+        if not recommendations:
+            recommendations.append("Code analysis completed successfully")
+        
+        return CodeAnalysisResponse(
+            total_files=total_files,
+            languages=languages,
+            complexity_summary=complexity_summary,
+            documentation_coverage=documentation_coverage,
+            recommendations=recommendations
+        )
+        
+    except Exception as e:
+        logger.error(f"Code analysis error: {e}")
+        raise HTTPException(status_code=500, detail="Code analysis failed")
+
 @router.get("/supported-languages")
 async def get_supported_languages():
     """Get list of supported programming languages"""

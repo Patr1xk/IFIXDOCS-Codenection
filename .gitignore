@@ -29,10 +29,3 @@ yarn-error.log*
 .DS_Store
 Thumbs.db
 
-#ReadMe
-DEMO_GUIDE.md
-DEMO_QUICK_REFERENCE.md
-HACKATHON_SETUP.md
-FREE_API_SETUP.md
-MCP_SETUP.md
-PRESENTATION_SLIDES.md

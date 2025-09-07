@@ -16,7 +16,7 @@ const CodeParsing = () => {
   });
 
   const [swaggerForm, setSwaggerForm] = useState({
-    swaggerContent: '',
+    swagger_content: '',
     format: 'json'
   });
 
@@ -26,6 +26,11 @@ const CodeParsing = () => {
     tags: ''
   });
 
+  const [repoForm, setRepoForm] = useState({
+    repositoryUrl: '',
+    languageFilters: []
+  });
+
   // Load supported languages on component mount
   React.useEffect(() => {
     fetchSupportedLanguages();
@@ -33,10 +38,10 @@ const CodeParsing = () => {
 
   const fetchSupportedLanguages = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/parsing/languages');
+      const response = await fetch('http://localhost:8000/api/parsing/supported-languages');
       if (response.ok) {
         const data = await response.json();
-        setSupportedLanguages(data.languages || ['python', 'javascript', 'typescript', 'java', 'go', 'rust']);
+        setSupportedLanguages(data.languages?.map(lang => lang.name.toLowerCase()) || ['python', 'javascript', 'typescript', 'java', 'go', 'rust']);
       }
     } catch (err) {
       console.error('Failed to fetch supported languages:', err);
@@ -57,7 +62,10 @@ const CodeParsing = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(codeForm),
+        body: JSON.stringify({
+          code_content: codeForm.code,
+          language: codeForm.language
+        }),
       });
 
       if (!response.ok) {
@@ -136,8 +144,40 @@ const CodeParsing = () => {
     setUploadForm({ ...uploadForm, file });
   };
 
+  const handleRepositoryAnalysis = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    setResult(null);
+
+    try {
+      const response = await fetch('http://localhost:8000/api/parsing/code-analysis', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          repository_url: repoForm.repositoryUrl,
+          language_filters: repoForm.languageFilters
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to analyze repository');
+      }
+
+      const data = await response.json();
+      setResult(data);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const tabs = [
     { id: 'code', label: 'Code Analysis', icon: Code },
+    { id: 'repository', label: 'Repository Analysis', icon: Github },
     { id: 'swagger', label: 'Swagger/OpenAPI', icon: FileCode },
     { id: 'upload', label: 'File Upload', icon: Upload }
   ];
@@ -165,7 +205,11 @@ const CodeParsing = () => {
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => {
+                  setActiveTab(tab.id);
+                  setResult(null);
+                  setError(null);
+                }}
                 className={`px-6 py-3 rounded-lg font-medium transition-all duration-200 flex items-center space-x-2 ${
                   activeTab === tab.id
                     ? 'bg-primary-100 text-primary-700 shadow-sm'
@@ -213,9 +257,13 @@ const CodeParsing = () => {
                     onChange={(e) => setCodeForm({...codeForm, language: e.target.value})}
                     className="w-full px-4 py-3 border-2 border-secondary-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                   >
-                    {supportedLanguages.map(lang => (
-                      <option key={lang} value={lang}>{lang.charAt(0).toUpperCase() + lang.slice(1)}</option>
-                    ))}
+                    {supportedLanguages && supportedLanguages.length > 0 ? (
+                      supportedLanguages.map(lang => (
+                        <option key={lang} value={lang}>{lang.charAt(0).toUpperCase() + lang.slice(1)}</option>
+                      ))
+                    ) : (
+                      <option value="python">Python</option>
+                    )}
                   </select>
                 </div>
 
@@ -320,6 +368,159 @@ const CodeParsing = () => {
           </div>
         )}
 
+        {activeTab === 'repository' && (
+          <div className="bg-white rounded-xl p-8 shadow-sm border border-secondary-200">
+            <div className="text-center mb-8">
+              <h2 className="text-2xl font-bold text-secondary-900 mb-2">Repository Analysis</h2>
+              <p className="text-secondary-600">Analyze entire GitHub repositories for comprehensive code metrics and insights</p>
+            </div>
+
+            <form onSubmit={handleRepositoryAnalysis} className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-secondary-700 mb-2">
+                  GitHub Repository URL
+                </label>
+                <input
+                  type="url"
+                  value={repoForm.repositoryUrl}
+                  onChange={(e) => setRepoForm({...repoForm, repositoryUrl: e.target.value})}
+                  placeholder="https://github.com/owner/repository"
+                  className="w-full px-4 py-3 border-2 border-secondary-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-secondary-700 mb-2">
+                  Language Filters (Optional)
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {supportedLanguages && supportedLanguages.length > 0 ? (
+                    supportedLanguages.map(lang => (
+                      <label key={lang} className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          checked={repoForm.languageFilters.includes(lang)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setRepoForm({...repoForm, languageFilters: [...repoForm.languageFilters, lang]});
+                            } else {
+                              setRepoForm({...repoForm, languageFilters: repoForm.languageFilters.filter(l => l !== lang)});
+                            }
+                          }}
+                          className="rounded border-secondary-300 text-primary-600 focus:ring-primary-500"
+                        />
+                        <span className="text-sm text-secondary-700">{lang.charAt(0).toUpperCase() + lang.slice(1)}</span>
+                      </label>
+                    ))
+                  ) : (
+                    <div className="text-sm text-secondary-500">Loading languages...</div>
+                  )}
+                </div>
+                <p className="text-sm text-secondary-500 mt-1">Leave empty to analyze all languages</p>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-primary-600 hover:bg-primary-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? (
+                  <div className="flex items-center justify-center">
+                    <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                    Analyzing Repository...
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center">
+                    <Github className="w-5 h-5 mr-2" />
+                    Analyze Repository
+                  </div>
+                )}
+              </button>
+            </form>
+
+            {/* Result Display */}
+            {result && (
+              <div className="mt-8 p-6 bg-success-50 rounded-xl border border-success-200">
+                <div className="flex items-center mb-4">
+                  <CheckCircle className="w-6 h-6 text-success-600 mr-2" />
+                  <h3 className="text-lg font-semibold text-success-900">Repository Analysis Complete</h3>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="bg-white p-4 rounded-lg border border-success-200">
+                    <h4 className="font-medium text-success-900 mb-3">Overview</h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-secondary-700">Total Files:</span>
+                        <span className="font-medium text-secondary-800">{result.total_files || 0}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-secondary-700">Documentation Coverage:</span>
+                        <span className="font-medium text-secondary-800">{result.documentation_coverage || 0}%</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-4 rounded-lg border border-success-200">
+                    <h4 className="font-medium text-success-900 mb-3">Complexity Summary</h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-secondary-700">Total Complexity:</span>
+                        <span className="font-medium text-secondary-800">{result.complexity_summary?.total_complexity || 0}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-secondary-700">Average Complexity:</span>
+                        <span className="font-medium text-secondary-800">{result.complexity_summary?.avg_complexity || 0}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-secondary-700">Max Complexity:</span>
+                        <span className="font-medium text-secondary-800">{result.complexity_summary?.max_complexity || 0}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {result.languages && Object.keys(result.languages).length > 0 && (
+                  <div className="mt-6 bg-white p-4 rounded-lg border border-success-200">
+                    <h4 className="font-medium text-success-900 mb-3">Languages Detected</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {Object.entries(result.languages).map(([lang, count]) => (
+                        <span key={lang} className="px-3 py-1 bg-primary-100 text-primary-800 rounded-full text-sm">
+                          {lang}: {count} files
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {result.recommendations && result.recommendations.length > 0 && (
+                  <div className="mt-6 bg-white p-4 rounded-lg border border-success-200">
+                    <h4 className="font-medium text-success-900 mb-3">Recommendations</h4>
+                    <ul className="space-y-2">
+                      {result.recommendations.map((rec, index) => (
+                        <li key={index} className="flex items-start space-x-2 text-sm">
+                          <CheckCircle className="w-4 h-4 text-success-600 mt-0.5 flex-shrink-0" />
+                          <span className="text-secondary-800">{rec}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {error && (
+              <div className="mt-8 p-4 bg-error-50 rounded-xl border border-error-200">
+                <div className="flex items-center">
+                  <AlertTriangle className="w-5 h-5 text-error-600 mr-2" />
+                  <span className="text-error-800">{error}</span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {activeTab === 'swagger' && (
           <div className="bg-white rounded-xl p-8 shadow-sm border border-secondary-200">
             <div className="text-center mb-8">
@@ -333,8 +534,8 @@ const CodeParsing = () => {
                   Swagger/OpenAPI Content
                 </label>
                 <textarea
-                  value={swaggerForm.swaggerContent}
-                  onChange={(e) => setSwaggerForm({...swaggerForm, swaggerContent: e.target.value})}
+                  value={swaggerForm.swagger_content}
+                  onChange={(e) => setSwaggerForm({...swaggerForm, swagger_content: e.target.value})}
                   placeholder="Paste your Swagger/OpenAPI specification (JSON or YAML)..."
                   className="w-full h-48 px-4 py-3 border-2 border-secondary-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 font-mono text-sm"
                   required
@@ -405,16 +606,78 @@ const CodeParsing = () => {
                   </div>
                 )}
                 
+                {(result.title || result.version || result.base_url) && (
+                  <div className="mb-4">
+                    <h4 className="font-medium text-success-900 mb-2">API Information:</h4>
+                    <div className="bg-white p-4 rounded-lg border border-success-200">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                        {result.title && (
+                          <div>
+                            <span className="font-medium text-secondary-600">Title:</span>
+                            <p className="text-secondary-800">{result.title}</p>
+                          </div>
+                        )}
+                        {result.version && (
+                          <div>
+                            <span className="font-medium text-secondary-600">Version:</span>
+                            <p className="text-secondary-800">{result.version}</p>
+                          </div>
+                        )}
+                        {result.base_url && (
+                          <div>
+                            <span className="font-medium text-secondary-600">Base URL:</span>
+                            <p className="text-secondary-800 font-mono text-xs">{result.base_url}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
                 {result.endpoints && (
                   <div className="mb-4">
                     <h4 className="font-medium text-success-900 mb-2">API Endpoints ({result.endpoints.length}):</h4>
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                       {result.endpoints.map((endpoint, index) => (
-                        <div key={index} className="bg-white p-3 rounded-lg border border-success-200">
-                          <div className="flex items-center justify-between">
-                            <span className="font-mono text-sm text-secondary-800">{endpoint.method} {endpoint.path}</span>
+                        <div key={index} className="bg-white p-4 rounded-lg border border-success-200">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="font-mono text-sm font-medium text-secondary-800">{endpoint.method} {endpoint.path}</span>
                             <span className="text-sm text-secondary-600">{endpoint.summary}</span>
                           </div>
+                          
+                          {endpoint.description && (
+                            <div className="mb-2">
+                              <span className="text-xs font-medium text-secondary-600">Description:</span>
+                              <p className="text-sm text-secondary-700">{endpoint.description}</p>
+                            </div>
+                          )}
+                          
+                          {endpoint.parameters && endpoint.parameters.length > 0 && (
+                            <div className="mb-2">
+                              <span className="text-xs font-medium text-secondary-600">Parameters:</span>
+                              <div className="mt-1 space-y-1">
+                                {endpoint.parameters.map((param, paramIndex) => (
+                                  <div key={paramIndex} className="text-xs text-secondary-700 bg-secondary-50 px-2 py-1 rounded">
+                                    <span className="font-medium">{param.name}</span> ({param.in}) - {param.description || 'No description'}
+                                    {param.schema && <span className="text-secondary-500"> - {param.schema.type}</span>}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          
+                          {endpoint.responses && Object.keys(endpoint.responses).length > 0 && (
+                            <div>
+                              <span className="text-xs font-medium text-secondary-600">Responses:</span>
+                              <div className="mt-1 space-y-1">
+                                {Object.entries(endpoint.responses).map(([code, response]) => (
+                                  <div key={code} className="text-xs text-secondary-700 bg-secondary-50 px-2 py-1 rounded">
+                                    <span className="font-medium">{code}</span> - {response.description || 'No description'}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -424,13 +687,51 @@ const CodeParsing = () => {
                 {result.models && (
                   <div className="mb-4">
                     <h4 className="font-medium text-success-900 mb-2">Data Models ({result.models.length}):</h4>
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                       {result.models.map((model, index) => (
-                        <div key={index} className="bg-white p-3 rounded-lg border border-success-200">
-                          <div className="font-medium text-secondary-800 mb-1">{model.name}</div>
-                          <div className="text-sm text-secondary-600">{model.description}</div>
+                        <div key={index} className="bg-white p-4 rounded-lg border border-success-200">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="font-medium text-secondary-800">{model.name}</span>
+                            <span className="text-sm text-secondary-600">({model.type})</span>
+                          </div>
+                          
+                          {model.properties && Object.keys(model.properties).length > 0 && (
+                            <div className="mb-2">
+                              <span className="text-xs font-medium text-secondary-600">Properties:</span>
+                              <div className="mt-1 space-y-1">
+                                {Object.entries(model.properties).map(([propName, propInfo]) => (
+                                  <div key={propName} className="text-xs text-secondary-700 bg-secondary-50 px-2 py-1 rounded">
+                                    <span className="font-medium">{propName}</span> - {propInfo.type || 'unknown'}
+                                    {propInfo.description && <span className="text-secondary-500"> - {propInfo.description}</span>}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          
+                          {model.required && model.required.length > 0 && (
+                            <div>
+                              <span className="text-xs font-medium text-secondary-600">Required Fields:</span>
+                              <div className="mt-1">
+                                <span className="text-xs text-secondary-700 bg-warning-50 px-2 py-1 rounded">
+                                  {model.required.join(', ')}
+                                </span>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       ))}
+                    </div>
+                  </div>
+                )}
+                
+                {result.documentation && (
+                  <div className="mb-4">
+                    <h4 className="font-medium text-success-900 mb-2">Generated Documentation:</h4>
+                    <div className="bg-white p-4 rounded-lg border border-success-200">
+                      <pre className="text-sm text-secondary-700 whitespace-pre-wrap font-mono">
+                        {result.documentation}
+                      </pre>
                     </div>
                   </div>
                 )}

@@ -62,7 +62,7 @@ const Dashboard = () => {
           <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-green-500 rounded-xl flex items-center justify-center mr-4">
             <FileText className="w-6 h-6 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-secondary-900">SmartDocs Dashboard</h1>
+          <h1 className="text-3xl font-bold text-secondary-900">IFastDocs Dashboard</h1>
         </div>
         <p className="text-lg text-secondary-600 max-w-2xl mx-auto">
           Comprehensive documentation platform for the real world - Built for Hackathon

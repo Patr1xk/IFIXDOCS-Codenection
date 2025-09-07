@@ -71,7 +71,7 @@ const AppContent = () => {
       case 'onboarding':
         return (
           <div className="p-8 text-center">
-            <h1 className="text-3xl font-bold text-secondary-900 mb-4">Welcome to SmartDocs! 🎉</h1>
+            <h1 className="text-3xl font-bold text-secondary-900 mb-4">Welcome to IFastDocs! 🎉</h1>
             <p className="text-lg text-secondary-600 max-w-2xl mx-auto mb-8">
               Let's get you started with a quick tour of the platform and show you how to make the most of our documentation tools.
             </p>
@@ -134,7 +134,7 @@ const AppContent = () => {
         return (
           <div className="p-8 text-center">
             <h1 className="text-3xl font-bold text-secondary-900 mb-4">Settings</h1>
-            <p className="text-lg text-secondary-600">Coming soon - Configure your workspace preferences</p>
+            <p className="text-lg text-secondary-600">Coming soon...</p>
           </div>
         );
       default:

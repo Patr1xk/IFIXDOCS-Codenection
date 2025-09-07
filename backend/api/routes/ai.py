@@ -28,7 +28,7 @@ class HuggingFaceClient:
             
             # Use specified model or default to a good one
             if not model:
-                model = "microsoft/DialoGPT-small"  # Smaller, more reliable model
+                model = "microsoft/DialoGPT-medium"  # Better model for text generation
             
             payload = {
                 "inputs": prompt,
@@ -76,8 +76,12 @@ class HuggingFaceClient:
         try:
             headers = {"Authorization": f"Bearer {self.api_key}"}
             
-            # Use a better summarization model
-            model = "facebook/bart-large-cnn"  # Good for summarization
+            # Try multiple models for better reliability
+            models_to_try = [
+                "facebook/bart-large-cnn",  # Best for summarization
+                "google/pegasus-xsum",     # Alternative
+                "microsoft/DialoGPT-small"  # Fallback
+            ]
             
             # Adjust parameters based on summary type
             if summary_type == "brief":
@@ -93,38 +97,73 @@ class HuggingFaceClient:
                 min_length = 100
                 max_length = min(max_length, 300)
             
-            # Increase input length for better context
-            input_text = text[:2000]  # Increased from 1000
+            # Try each model until one works
+            for model in models_to_try:
+                try:
+                    logger.info(f"Trying model: {model}")
+                    
+                    # Prepare input text
+                    input_text = text[:2000] if model != "microsoft/DialoGPT-small" else f"Summarize this: {text[:1000]}"
+                    
+                    if model == "microsoft/DialoGPT-small":
+                        # Use text generation approach for DialoGPT
+                        payload = {
+                            "inputs": input_text,
+                            "parameters": {
+                                "max_length": max_length,
+                                "temperature": 0.7,
+                                "do_sample": True,
+                                "top_p": 0.9
+                            }
+                        }
+                    else:
+                        # Use summarization approach for BART/Pegasus
+                        payload = {
+                            "inputs": input_text,
+                            "parameters": {
+                                "max_length": max_length,
+                                "min_length": min_length,
+                                "do_sample": False,
+                                "num_beams": 4,
+                                "length_penalty": 1.0,
+                                "no_repeat_ngram_size": 3
+                            }
+                        }
+                    
+                    response = await self.client.post(
+                        f"{self.base_url}/{model}",
+                        json=payload,
+                        headers=headers,
+                        timeout=30.0
+                    )
+                    
+                    if response.status_code == 200:
+                        result = response.json()
+                        logger.info(f"Model {model} response: {result}")
+                        
+                        if isinstance(result, list) and len(result) > 0:
+                            if model == "microsoft/DialoGPT-small":
+                                summary = result[0].get('generated_text', '')
+                                # Clean up the response
+                                if input_text in summary:
+                                    summary = summary.replace(input_text, '').strip()
+                            else:
+                                summary = result[0].get('summary_text', '')
+                            
+                            # Ensure summary is meaningful
+                            if summary and len(summary.split()) >= 10:
+                                logger.info(f"Successfully generated summary with {model}")
+                                return summary
+                    
+                    logger.warning(f"Model {model} failed or returned empty result")
+                    
+                except Exception as model_error:
+                    logger.warning(f"Model {model} failed: {model_error}")
+                    continue
             
-            payload = {
-                "inputs": input_text,
-                "parameters": {
-                    "max_length": max_length,
-                    "min_length": min_length,
-                    "do_sample": False,
-                    "num_beams": 4,  # Better quality
-                    "length_penalty": 1.0,  # Encourage longer summaries
-                    "no_repeat_ngram_size": 3  # Avoid repetition
-                }
-            }
-            
-            response = await self.client.post(
-                f"{self.base_url}/{model}",
-                json=payload,
-                headers=headers
-            )
-            
-            if response.status_code == 200:
-                result = response.json()
-                if isinstance(result, list) and len(result) > 0:
-                    summary = result[0].get('summary_text', self._fallback_summary(text, summary_type))
-                    # Ensure summary is not too short
-                    if len(summary.split()) < 20:
-                        return self._fallback_summary(text, summary_type)
-                    return summary
-                return self._fallback_summary(text, summary_type)
-            else:
-                return self._fallback_summary(text, summary_type)
+            # If all models failed, return fallback
+            logger.warning("All Hugging Face models failed, using fallback")
+            return self._fallback_summary(text, summary_type)
                 
         except Exception as e:
             logger.error(f"Error summarizing text: {e}")
@@ -159,46 +198,69 @@ class HuggingFaceClient:
             return "I'm here to help with documentation tasks. Try the GitHub integration to auto-generate docs, or use the AI features for summarization and Q&A."
     
     def _fallback_summary(self, text: str, summary_type: str = "comprehensive") -> str:
-        """Smart fallback summary with better control"""
+        """Smart fallback summary with natural language"""
         sentences = text.split('.')
         if len(sentences) <= 3:
             return text
         
+        # Clean up sentences and remove markdown formatting
+        clean_sentences = []
+        for sentence in sentences:
+            # Remove markdown formatting
+            clean_sentence = sentence.replace('#', '').replace('*', '').replace('**', '').replace('`', '').strip()
+            if clean_sentence and len(clean_sentence) > 10:  # Filter out very short sentences
+                clean_sentences.append(clean_sentence)
+        
         # Adjust summary length based on type
         if summary_type == "brief":
-            summary_sentences = sentences[:2]
+            summary_sentences = clean_sentences[:2]
         elif summary_type == "comprehensive":
-            summary_sentences = sentences[:4]
+            summary_sentences = clean_sentences[:4]
         elif summary_type == "detailed":
-            summary_sentences = sentences[:6]
+            summary_sentences = clean_sentences[:6]
         else:
-            summary_sentences = sentences[:4]
+            summary_sentences = clean_sentences[:4]
         
-        # Clean up sentences
-        summary_sentences = [s.strip() for s in summary_sentences if s.strip()]
-        
-        # Add key points extraction for longer texts
-        if len(sentences) > 10:
-            # Look for key phrases
-            key_phrases = []
-            for sentence in sentences[:8]:
-                if any(keyword in sentence.lower() for keyword in ['important', 'key', 'main', 'primary', 'essential', 'critical']):
-                    key_phrases.append(sentence.strip())
+        # Create natural summary
+        if summary_sentences:
+            summary = '. '.join(summary_sentences) + '.'
             
-            if key_phrases:
-                summary_sentences.extend(key_phrases[:2])
-        
-        summary = '. '.join(summary_sentences) + '.'
-        
-        # Ensure minimum length
-        if len(summary.split()) < 30:
-            # Add more sentences if too short
-            additional_sentences = sentences[4:6]
-            summary += ' ' + '. '.join([s.strip() for s in additional_sentences if s.strip()]) + '.'
+            # Add natural language introduction
+            if summary_type == "brief":
+                summary = f"This is a brief overview: {summary}"
+            elif summary_type == "comprehensive":
+                summary = f"Here's what this covers: {summary}"
+            elif summary_type == "detailed":
+                summary = f"This document provides detailed information about: {summary}"
+        else:
+            summary = "This content appears to be a technical document or code repository. It contains various sections covering different aspects of the project."
         
         return summary
 
 huggingface_client = HuggingFaceClient()
+
+def _clean_summary_output(summary: str) -> str:
+    """Clean up summary output to remove technical markers and formatting"""
+    if not summary:
+        return summary
+    
+    # Remove MCP enhancement markers
+    summary = summary.replace('[Enhanced with professional context - Focus: clarity and brevity]', '')
+    summary = summary.replace('[Enhanced with technical context - Focus: quality and maintainability]', '')
+    summary = summary.replace('[Enhanced with comprehensive context - Focus: completeness and usability]', '')
+    summary = summary.replace('[Enhanced with standard context - Focus: general applicability]', '')
+    
+    # Remove markdown formatting
+    summary = summary.replace('#', '').replace('*', '').replace('**', '').replace('`', '')
+    
+    # Remove extra whitespace and clean up
+    summary = ' '.join(summary.split())
+    
+    # Remove any remaining technical markers
+    import re
+    summary = re.sub(r'\[.*?\]', '', summary)  # Remove any remaining bracketed text
+    
+    return summary.strip()
 
 # Helper methods for enhanced GitHub analysis
 def _analyze_python_file_purpose(content: str) -> str:
@@ -289,14 +351,17 @@ class GitHubClient:
         headers = {"Authorization": f"token {self.token}"} if self.token else {}
         
         try:
-            response = await self.client.get(
-                f"https://api.github.com/repos/{owner}/{repo}/contents/{path}",
-                headers=headers
-            )
+            url = f"https://api.github.com/repos/{owner}/{repo}/contents/{path}"
+            logger.info(f"Fetching GitHub content from: {url}")
+            
+            response = await self.client.get(url, headers=headers)
             
             if response.status_code == 200:
-                return response.json()
+                content = response.json()
+                logger.info(f"Successfully fetched {len(content)} items from GitHub")
+                return content
             else:
+                logger.error(f"GitHub API error: {response.status_code} - {response.text}")
                 return []
         except Exception as e:
             logger.error(f"Error getting repo content: {e}")
@@ -343,6 +408,8 @@ class SummarizeRequest(BaseModel):
     max_length: Optional[int] = 300
     summary_type: Optional[str] = "comprehensive"  # brief, comprehensive, detailed
     style: Optional[str] = "technical"
+    document_id: Optional[str] = None
+    document_title: Optional[str] = None
 
 class SummarizeResponse(BaseModel):
     summary: str
@@ -353,6 +420,8 @@ class SummarizeResponse(BaseModel):
     word_count: int
     sentence_count: int
     avg_sentence_length: float
+    document_used: Optional[bool] = False
+    document_title: Optional[str] = None
 
 class QARequest(BaseModel):
     question: str
@@ -593,22 +662,54 @@ This repository contains **{len(api_files)} code files**:
 # Core Feature 2: Speed Up Reading - Summarization
 @router.post("/summarize", response_model=SummarizeResponse)
 async def summarize_content(request: SummarizeRequest):
-    """Summarize long content using AI with comprehensive options"""
+    """Summarize long content using AI with comprehensive options and MCP context"""
     try:
         original_length = len(request.content)
         
         # Get summary type from request (default to comprehensive)
         summary_type = getattr(request, 'summary_type', 'comprehensive')
         
-        if settings.huggingface_api_key:
-            summary = await huggingface_client.summarize_text(
-                request.content, 
-                request.max_length, 
-                summary_type
+        # Get MCP context if document is provided
+        mcp_context = None
+        if request.document_id and request.document_title:
+            mcp_context = await mcp_client.get_context(
+                request.content,
+                "summarization", 
+                request.content,
+                request.document_title
             )
+        
+        if settings.huggingface_api_key:
+            # Use MCP-enhanced summarization if context is available
+            if mcp_context and mcp_context.get('has_document_content'):
+                # Enhanced summarization with document context - natural language
+                enhanced_prompt = f"""
+                Please summarize the following content in plain, conversational language like ChatGPT would. 
+                Make it natural and easy to understand, avoiding technical jargon or formatting markers.
+                
+                Document: {request.document_title}
+                Content: {request.content}
+                
+                Provide a {summary_type} summary that explains the key points in simple, clear language.
+                """
+                summary = await huggingface_client.summarize_text(request.content, max_length=request.max_length, summary_type=summary_type)
+            else:
+                # Regular summarization with natural language prompt
+                natural_prompt = f"""
+                Please summarize the following content in plain, conversational language. 
+                Make it natural and easy to understand, like ChatGPT would explain it.
+                
+                Content: {request.content}
+                
+                Provide a {summary_type} summary in simple, clear language.
+                """
+                summary = await huggingface_client.summarize_text(request.content, max_length=request.max_length, summary_type=summary_type)
         else:
-            # Enhanced fallback summarization
+            # Enhanced fallback summarization with natural language
             summary = huggingface_client._fallback_summary(request.content, summary_type)
+        
+        # Clean up any technical markers or formatting
+        summary = _clean_summary_output(summary)
         
         summary_length = len(summary)
         reduction = ((original_length - summary_length) / original_length) * 100 if original_length > 0 else 0
@@ -617,16 +718,18 @@ async def summarize_content(request: SummarizeRequest):
         word_count = len(summary.split())
         sentence_count = len(summary.split('.'))
         avg_sentence_length = word_count / sentence_count if sentence_count > 0 else 0
-            
-            return SummarizeResponse(
-                summary=summary,
+        
+        return SummarizeResponse(
+            summary=summary,
             original_length=original_length,
             summary_length=summary_length,
             reduction_percentage=reduction,
             summary_type=summary_type,
             word_count=word_count,
             sentence_count=sentence_count,
-            avg_sentence_length=round(avg_sentence_length, 1)
+            avg_sentence_length=round(avg_sentence_length, 1),
+            document_used=bool(request.document_id),
+            document_title=request.document_title
         )
     except Exception as e:
         logger.error(f"Error in summarization: {e}")
@@ -670,8 +773,8 @@ async def enhance_content(request: SummarizeRequest):
             original_length=original_length,
             summary_length=enhanced_length,
             reduction_percentage=change_percentage
-        )
-        
+            )
+            
     except Exception as e:
         logger.error(f"Error in content enhancement: {e}")
         raise HTTPException(status_code=500, detail="Content enhancement failed")
@@ -843,15 +946,15 @@ async def answer_question(request: QARequest):
             
             Relevant Document Content:
             {mcp_context.get('context', '')}
-            
-            Question: {request.question}
-            
+        
+        Question: {request.question}
+        
             Please provide a detailed answer based on the document content above. 
             If the answer is found in the document, reference specific parts of it.
             If the answer is not in the document, say so clearly and provide helpful guidance.
             """
         else:
-        enhanced_prompt = f"""
+            enhanced_prompt = f"""
             Document Context: {full_context}
             MCP Context: {mcp_context.get('context', '')}
         

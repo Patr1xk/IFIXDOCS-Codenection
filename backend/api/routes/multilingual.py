@@ -530,7 +530,7 @@ class TranslationManager:
     def _enhanced_fallback_translate(self, content: str, source_lang: str, target_lang: str) -> str:
         """Enhanced fallback translation that can handle ANY sentence"""
         # Comprehensive fallback translations with thousands of words and phrases
-            translations = {
+        translations = {
             ("en", "es"): {
                 # Common words
                 "Hello": "Hola", "Hi": "Hola", "Goodbye": "Adiós", "Bye": "Adiós",
@@ -1101,7 +1101,7 @@ class TranslationManager:
     def _fallback_translate(self, content: str, source_lang: str, target_lang: str) -> str:
         """Fallback translation when AI is not available"""
         # Comprehensive fallback translations
-            translations = {
+        translations = {
             ("en", "es"): {
                 # Common words
                 "Hello": "Hola", "Hi": "Hola", "Goodbye": "Adiós", "Bye": "Adiós",
@@ -1537,7 +1537,7 @@ class TranslationManager:
                     if clean_word in translations[lang_pair]:
                         translated_word = translations[lang_pair][clean_word]
                         translated_words.append(translated_word)
-        else:
+                    else:
                         translated_words.append(word)
                 translated = ' '.join(translated_words)
             
