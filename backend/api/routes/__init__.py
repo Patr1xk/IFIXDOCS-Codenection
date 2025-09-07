@@ -1,1 +1,1 @@
-# Routes package for SmartDocs API
+# Routes package for IFastDocs API

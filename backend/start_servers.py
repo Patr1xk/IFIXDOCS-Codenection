@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-SmartDocs Server Startup Script
+IFastDocs Server Startup Script
 Starts both the main FastAPI server and MCP server
 """
 
@@ -31,7 +31,7 @@ def start_mcp_server():
 
 def start_main_server():
     """Start the main FastAPI server"""
-    print("🚀 Starting Main SmartDocs Server on port 8000...")
+    print("🚀 Starting Main IFastDocs Server on port 8000...")
     try:
         # Start main server
         main_process = subprocess.Popen([
@@ -52,7 +52,7 @@ def start_main_server():
 
 def main():
     """Main startup function"""
-    print("🎯 SmartDocs - Starting Integrated Server Setup")
+    print("🎯 IFastDocs - Starting Integrated Server Setup")
     print("=" * 50)
     
     # Start MCP server first

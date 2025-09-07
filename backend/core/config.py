@@ -13,7 +13,7 @@ load_dotenv(env_file, override=True)
 class Settings(BaseSettings):
     # API Configuration
     api_v1_str: str = "/api/v1"
-    project_name: str = "SmartDocs"
+    project_name: str = "IFastDocs"
     
     # OpenAI Configuration
     openai_api_key: Optional[str] = None

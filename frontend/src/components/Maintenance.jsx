@@ -627,7 +627,7 @@ const Maintenance = () => {
                    <div className="text-center text-secondary-600">
                      <RefreshCw className="w-12 h-12 mx-auto mb-4 text-secondary-400" />
                      <p className="text-lg font-medium mb-2">Real-time Dependency Tracking</p>
-                     <p className="text-sm">SmartDocs monitors component relationships and automatically notifies when changes affect documentation</p>
+                     <p className="text-sm">IFastDocs monitors component relationships and automatically notifies when changes affect documentation</p>
                    </div>
                  </div>
                </div>

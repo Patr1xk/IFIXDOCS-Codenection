@@ -1,1 +1,1 @@
-# API package for SmartDocs
+# API package for IFastDocs

@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import json
 
-app = FastAPI(title="SmartDocs MCP Server", description="Model Context Protocol server for enhanced AI features")
+app = FastAPI(title="IFastDocs MCP Server", description="Model Context Protocol server for enhanced AI features")
 
 class ContextRequest(BaseModel):
     query: str
@@ -100,7 +100,7 @@ async def health_check():
     """Health check endpoint"""
     return {
         "status": "healthy",
-        "service": "SmartDocs MCP Server",
+        "service": "IFastDocs MCP Server",
         "version": "1.0.0"
     }
 
@@ -108,7 +108,7 @@ async def health_check():
 async def root():
     """Root endpoint"""
     return {
-        "message": "SmartDocs MCP Server",
+        "message": "IFastDocs MCP Server",
         "description": "Model Context Protocol server for enhanced AI features",
         "endpoints": [
             "/context - Get context for AI queries",
@@ -120,7 +120,7 @@ async def root():
 
 if __name__ == "__main__":
     import uvicorn
-    print("🚀 Starting SmartDocs MCP Server...")
+    print("🚀 Starting IFastDocs MCP Server...")
     print("📍 Server will be available at: http://localhost:8001")
     print("📚 API docs available at: http://localhost:8001/docs")
     uvicorn.run(app, host="0.0.0.0", port=8001)

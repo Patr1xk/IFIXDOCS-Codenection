@@ -74,19 +74,19 @@ class TutorialManager:
         return {
             "getting-started": Tutorial(
                 tutorial_id="getting-started",
-                title="Getting Started with SmartDocs",
-                description="Learn the basics of using SmartDocs for documentation",
+                title="Getting Started with IFastDocs",
+                description="Learn the basics of using IFastDocs for documentation",
                 difficulty="beginner",
                 steps=[
                     TutorialStep(
                         step_id="intro",
-                        title="Introduction to SmartDocs",
-                        description="Understand what SmartDocs is and how it can help you",
-                        content="SmartDocs is an AI-powered documentation assistant that helps you create, maintain, and consume technical documentation more effectively.",
+                        title="Introduction to IFastDocs",
+                        description="Understand what IFastDocs is and how it can help you",
+                        content="IFastDocs is an AI-powered documentation assistant that helps you create, maintain, and consume technical documentation more effectively.",
                         code_examples=[],
                         quiz_questions=[
                             {
-                                "question": "What is the main purpose of SmartDocs?",
+                                "question": "What is the main purpose of IFastDocs?",
                                 "options": [
                                     "To replace all documentation",
                                     "To assist with documentation creation and maintenance",
@@ -128,7 +128,7 @@ class TutorialManager:
                         step_id="ai-features",
                         title="Using AI Features",
                         description="Explore AI-powered documentation features",
-                        content="SmartDocs uses AI to help summarize content, answer questions, and generate documentation.",
+                        content="IFastDocs uses AI to help summarize content, answer questions, and generate documentation.",
                         code_examples=[],
                         quiz_questions=[
                             {
@@ -151,7 +151,7 @@ class TutorialManager:
             ),
             "advanced-features": Tutorial(
                 tutorial_id="advanced-features",
-                title="Advanced SmartDocs Features",
+                title="Advanced IFastDocs Features",
                 description="Master advanced documentation features",
                 difficulty="intermediate",
                 steps=[
@@ -237,13 +237,13 @@ class InteractiveGuideManager:
                     {
                         "type": "step",
                         "title": "Welcome",
-                        "description": "Let's get you started with SmartDocs in 5 minutes",
+                        "description": "Let's get you started with IFastDocs in 5 minutes",
                         "action": "next"
                     },
                     {
                         "type": "action",
                         "title": "Upload Code",
-                        "description": "Upload a code file to see SmartDocs in action",
+                        "description": "Upload a code file to see IFastDocs in action",
                         "action": "upload_file",
                         "target": "file_upload"
                     },

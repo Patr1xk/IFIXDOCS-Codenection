@@ -1,1 +1,1 @@
-# Core package for SmartDocs
+# Core package for IFastDocs

@@ -200,7 +200,7 @@ class HuggingFaceClient:
                 return "To get started, use the GitHub integration to auto-generate documentation from repositories. You can also use the AI features for summarization and Q&A."
         elif "what" in prompt_lower:
             if "features" in prompt_lower:
-                return "SmartDocs includes: AI-powered documentation generation from GitHub repositories, intelligent summarization tools, Q&A search for documents, multilingual support, real-time writing assistance with grammar checking, and visualization tools for flow diagrams and API call graphs."
+                return "IFastDocs includes: AI-powered documentation generation from GitHub repositories, intelligent summarization tools, Q&A search for documents, multilingual support, real-time writing assistance with grammar checking, and visualization tools for flow diagrams and API call graphs."
             elif "platform" in prompt_lower or "tool" in prompt_lower:
                 return "This is a comprehensive documentation platform that helps you create, read, and maintain technical documentation using AI-powered features like auto-generation, summarization, and intelligent Q&A."
             else:
@@ -1194,7 +1194,7 @@ async def answer_question(request: QARequest):
                 
                 # Check for specific content keywords first (more specific)
                 if any(word in question_lower for word in ["features", "capabilities", "functions", "tools"]):
-                    answer += "SmartDocs includes: AI-powered documentation generation from GitHub repositories, intelligent summarization tools, Q&A search for documents, multilingual support, real-time writing assistance with grammar checking, and visualization tools for flow diagrams and API call graphs."
+                    answer += "IFastDocs includes: AI-powered documentation generation from GitHub repositories, intelligent summarization tools, Q&A search for documents, multilingual support, real-time writing assistance with grammar checking, and visualization tools for flow diagrams and API call graphs."
                 elif any(word in question_lower for word in ["github", "repository", "repo"]):
                     answer += "To generate documentation from GitHub, go to the 'Write Documentation' section and paste your GitHub repository URL. The system will automatically analyze your code and generate comprehensive documentation including README, API docs, and setup guides."
                 elif any(word in question_lower for word in ["documentation", "docs", "documents"]):
@@ -1218,7 +1218,7 @@ async def answer_question(request: QARequest):
             return QAResponse(
                 answer=answer,
                 confidence=0.6,
-                sources=[f"Document: {document_title}" if document_content else "SmartDocs Platform"],
+                sources=[f"Document: {document_title}" if document_content else "IFastDocs Platform"],
                 related_questions=[
                     "How do I generate docs from GitHub?",
                     "What AI features are available?",

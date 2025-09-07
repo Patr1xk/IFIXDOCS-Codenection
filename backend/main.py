@@ -14,7 +14,7 @@ load_dotenv()
 
 # Create FastAPI app
 app = FastAPI(
-    title="SmartDocs - Intelligent Documentation Assistant",
+    title="IFastDocs - Intelligent Documentation Assistant",
     description="AI-powered documentation tool that simplifies writing, speeds up reading, and makes maintenance easy",
     version="1.0.0",
     docs_url="/api/docs",
@@ -48,7 +48,7 @@ async def health_check():
     
     return {
         "status": "healthy", 
-        "service": "SmartDocs Backend",
+        "service": "IFastDocs Backend",
         "mcp_integration": {
             "status": mcp_status,
             "server_url": mcp_url,
@@ -65,7 +65,7 @@ async def health_check():
 @app.get("/")
 async def root():
     return {
-        "message": "SmartDocs API",
+        "message": "IFastDocs API",
         "version": "1.0.0",
         "docs": "/api/docs"
     }

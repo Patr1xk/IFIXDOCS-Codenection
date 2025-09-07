@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Environment Setup Script for SmartDocs
+Environment Setup Script for IFastDocs
 Creates .env file with MCP configuration
 """
 
@@ -10,10 +10,10 @@ from pathlib import Path
 def create_env_file():
     """Create .env file with MCP configuration"""
     
-    env_content = """# SmartDocs Configuration
+    env_content = """# IFastDocs Configuration
 # MCP Configuration
 MCP_SERVER_URL=http://localhost:8001
-MCP_API_KEY=smartdocs_mcp_key_2024
+MCP_API_KEY=IFastDocs_mcp_key_2024
 
 # Hugging Face Configuration (FREE AI API)
 HUGGINGFACE_API_KEY=your_huggingface_api_key_here
@@ -23,7 +23,7 @@ GITHUB_TOKEN=your_github_token_here
 GITHUB_WEBHOOK_SECRET=your_webhook_secret_here
 
 # Security
-SECRET_KEY=smartdocs_secret_key_2024_hackathon
+SECRET_KEY=IFastDocs_secret_key_2024_hackathon
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=30
 
@@ -32,7 +32,7 @@ UPLOAD_DIR=uploads
 MAX_FILE_SIZE=10485760
 
 # Database (for future use)
-DATABASE_URL=sqlite:///./smartdocs.db
+DATABASE_URL=sqlite:///./IFastDocs.db
 """
     
     # Create .env file in backend directory
@@ -57,16 +57,16 @@ DATABASE_URL=sqlite:///./smartdocs.db
         print("\n📝 Manual setup:")
         print("Create a .env file in the backend directory with:")
         print("MCP_SERVER_URL=http://localhost:8001")
-        print("MCP_API_KEY=smartdocs_mcp_key_2024")
+        print("MCP_API_KEY=IFastDocs_mcp_key_2024")
         return False
 
 def main():
     """Main setup function"""
-    print("🎯 SmartDocs - Environment Setup")
+    print("🎯 IFastDocs - Environment Setup")
     print("=" * 40)
     
     if create_env_file():
-        print("\n🚀 Ready to start SmartDocs with MCP integration!")
+        print("\n🚀 Ready to start IFastDocs with MCP integration!")
     else:
         print("\n⚠️  Please create .env file manually")
 
