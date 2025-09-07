@@ -21,24 +21,25 @@ class HuggingFaceClient:
     async def generate_text(self, prompt: str, max_length: int = 500, temperature: float = 0.7, model: str = None) -> str:
         """Generate text using Hugging Face models with model selection"""
         if not self.api_key:
+            # Use enhancement fallback if this looks like an enhancement prompt
+            if "enhance" in prompt.lower() or "improve" in prompt.lower() or "expand" in prompt.lower():
+                return _enhance_content_fallback(prompt)
             return self._fallback_response(prompt)
         
+        # Try HuggingFace API
         try:
             headers = {"Authorization": f"Bearer {self.api_key}"}
             
-            # Use specified model or default to a good one
+            # Use working models
             if not model:
-                model = "microsoft/DialoGPT-medium"  # Better model for text generation
+                model = "facebook/bart-large-cnn"  # Primary working model
             
             payload = {
                 "inputs": prompt,
                 "parameters": {
                     "max_length": max_length,
-                    "temperature": temperature,
                     "do_sample": True,
-                    "top_p": 0.9,
-                    "top_k": 50,
-                    "no_repeat_ngram_size": 3
+                    "temperature": temperature
                 }
             }
             
@@ -58,15 +59,25 @@ class HuggingFaceClient:
                         # Remove the original prompt from the response
                         if prompt in generated_text:
                             generated_text = generated_text.replace(prompt, '').strip()
-                        return generated_text or self._fallback_response(prompt)
-                return self._fallback_response(prompt)
+                        return generated_text or self._get_fallback_response(prompt)
+                return self._get_fallback_response(prompt)
             else:
                 logger.error(f"Hugging Face API error: {response.status_code} - {response.text}")
-                return self._fallback_response(prompt)
+                return self._get_fallback_response(prompt)
                 
         except Exception as e:
             logger.error(f"Error generating text: {e}")
-            return self._fallback_response(prompt)
+            return self._get_fallback_response(prompt)
+    
+    def _get_fallback_response(self, prompt: str) -> str:
+        """Get appropriate fallback response based on prompt type"""
+        if "enhance" in prompt.lower() or "improve" in prompt.lower() or "expand" in prompt.lower():
+            # Extract the original content from the prompt
+            if "Original content:" in prompt:
+                content_start = prompt.find("Original content:") + len("Original content:")
+                content = prompt[content_start:].strip()
+                return _enhance_content_fallback(content)
+        return self._fallback_response(prompt)
     
     async def summarize_text(self, text: str, max_length: int = 300, summary_type: str = "comprehensive") -> str:
         """Summarize text using Hugging Face with better control"""
@@ -76,11 +87,10 @@ class HuggingFaceClient:
         try:
             headers = {"Authorization": f"Bearer {self.api_key}"}
             
-            # Try multiple models for better reliability
+            # Use working models
             models_to_try = [
                 "facebook/bart-large-cnn",  # Best for summarization
-                "google/pegasus-xsum",     # Alternative
-                "microsoft/DialoGPT-small"  # Fallback
+                "google/pegasus-xsum"        # Alternative summarization model
             ]
             
             # Adjust parameters based on summary type
@@ -117,18 +127,25 @@ class HuggingFaceClient:
                             }
                         }
                     else:
-                        # Use summarization approach for BART/Pegasus
-                        payload = {
-                            "inputs": input_text,
-                            "parameters": {
-                                "max_length": max_length,
-                                "min_length": min_length,
-                                "do_sample": False,
-                                "num_beams": 4,
-                                "length_penalty": 1.0,
-                                "no_repeat_ngram_size": 3
+                        # Use working parameters for different models
+                        if model == "google/pegasus-xsum":
+                            payload = {
+                                "inputs": input_text,
+                                "parameters": {
+                                    "max_length": max_length,
+                                    "do_sample": True
+                                }
                             }
-                        }
+                        else:
+                            payload = {
+                                "inputs": input_text,
+                                "parameters": {
+                                    "max_length": max_length,
+                                    "min_length": min_length,
+                                    "do_sample": True,
+                                    "temperature": 0.7
+                                }
+                            }
                     
                     response = await self.client.post(
                         f"{self.base_url}/{model}",
@@ -367,6 +384,41 @@ class GitHubClient:
             logger.error(f"Error getting repo content: {e}")
             return []
     
+    async def get_all_files(self, owner: str, repo: str, path: str = "") -> List[Dict[str, Any]]:
+        """Recursively get all files from repository"""
+        all_files = []
+        headers = {"Authorization": f"token {self.token}"} if self.token else {}
+        
+        try:
+            url = f"https://api.github.com/repos/{owner}/{repo}/contents/{path}"
+            response = await self.client.get(url, headers=headers)
+            
+            if response.status_code == 200:
+                content = response.json()
+                
+                for item in content:
+                    if item.get('type') == 'file':
+                        all_files.append(item)
+                    elif item.get('type') == 'dir':
+                        # Skip common directories that don't contain source code
+                        dir_name = item.get('name', '').lower()
+                        if dir_name not in ['.git', 'node_modules', '__pycache__', '.pytest_cache', 'venv', 'env', '.venv']:
+                            sub_files = await self.get_all_files(owner, repo, item.get('path', ''))
+                            all_files.extend(sub_files)
+                            
+            elif response.status_code == 403:
+                logger.warning(f"Rate limited or private repo: {response.status_code}")
+                return []
+            else:
+                logger.error(f"GitHub API error: {response.status_code} - {response.text}")
+                return []
+                
+        except Exception as e:
+            logger.error(f"Error getting all files: {e}")
+            return []
+            
+        return all_files
+    
     async def get_file_content(self, owner: str, repo: str, path: str) -> str:
         """Get file content"""
         headers = {"Authorization": f"token {self.token}"} if self.token else {}
@@ -471,8 +523,8 @@ async def generate_documentation_from_github(request: GitHubDocRequest):
         # Get repository information
         repository_info = await github_client.get_repository_info(owner, repo)
         
-        # Get repository content
-        content = await github_client.get_repository_content(owner, repo)
+        # Get repository content (recursively)
+        content = await github_client.get_all_files(owner, repo)
         
         # Process files
         readme_content = ""
@@ -746,18 +798,44 @@ async def enhance_content(request: SummarizeRequest):
         if not content:
             raise ValueError("Content cannot be empty")
         
-        # Check if this is an enhancement request
-        is_enhancement = "enhance" in content.lower() or "comprehensive" in content.lower()
-        
-        if is_enhancement and settings.huggingface_api_key:
+        # Always try AI enhancement if API key is available
+        if settings.huggingface_api_key:
             try:
-                enhanced = await huggingface_client.generate_text(content, max_length=1000)
+                # Create enhancement prompt
+                enhancement_prompt = f"""
+                Enhance this documentation content by expanding and improving it while keeping the original structure and intent:
+
+                Original content:
+                {content}
+
+                Please provide an enhanced version that:
+                - Expands on each point with more detail
+                - Adds relevant sections and subsections
+                - Includes practical examples where appropriate
+                - Maintains professional documentation style
+                - Keeps the same overall structure but makes it more comprehensive
+
+                Return only the enhanced content, no explanations.
+                """
+                
+                enhanced = await huggingface_client.generate_text(enhancement_prompt, max_length=request.max_length or 1000)
                 if enhanced and len(enhanced) > len(content):
+                    enhanced_length = len(enhanced)
+                    word_count = len(enhanced.split())
+                    sentence_count = len(enhanced.split('.'))
+                    avg_sentence_length = word_count / sentence_count if sentence_count > 0 else 0
+                    
                     return SummarizeResponse(
                         summary=enhanced,
                         original_length=original_length,
-                        summary_length=len(enhanced),
-                        reduction_percentage=((len(enhanced) - original_length) / original_length) * 100
+                        summary_length=enhanced_length,
+                        reduction_percentage=((enhanced_length - original_length) / original_length) * 100,
+                        summary_type=request.summary_type or "comprehensive",
+                        word_count=word_count,
+                        sentence_count=sentence_count,
+                        avg_sentence_length=round(avg_sentence_length, 1),
+                        document_used=False,
+                        document_title=None
                     )
             except Exception as e:
                 logger.warning(f"Huggingface enhancement failed: {e}")
@@ -767,12 +845,21 @@ async def enhance_content(request: SummarizeRequest):
         
         enhanced_length = len(enhanced_content)
         change_percentage = ((enhanced_length - original_length) / original_length) * 100 if original_length > 0 else 0
+        word_count = len(enhanced_content.split())
+        sentence_count = len(enhanced_content.split('.'))
+        avg_sentence_length = word_count / sentence_count if sentence_count > 0 else 0
         
         return SummarizeResponse(
             summary=enhanced_content,
             original_length=original_length,
             summary_length=enhanced_length,
-            reduction_percentage=change_percentage
+            reduction_percentage=change_percentage,
+            summary_type=request.summary_type or "comprehensive",
+            word_count=word_count,
+            sentence_count=sentence_count,
+            avg_sentence_length=round(avg_sentence_length, 1),
+            document_used=False,
+            document_title=None
             )
             
     except Exception as e:

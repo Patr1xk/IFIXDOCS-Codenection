@@ -147,8 +147,10 @@ graph TD
                 for func_name, params in functions:
                     param_list = [p.strip() for p in params.split(',') if p.strip()]
                     node_label = f"{func_name}({', '.join(param_list[:3])}{'...' if len(param_list) > 3 else ''})"
-                    node_id = f"func_{func_name}"
-                    nodes.append(f'{node_id}({node_label})')
+                    # Sanitize node ID and label for Mermaid
+                    safe_node_id = f"func_{func_name}".replace('(', '').replace(')', '').replace('-', '_').replace(' ', '_')
+                    safe_label = node_label.replace('(', '[').replace(')', ']')
+                    nodes.append(f'{safe_node_id}["{safe_label}"]')
                     analysis["functions"].append({"name": func_name, "params": param_list})
                 
                 # Add classes with visual styling
@@ -157,42 +159,52 @@ graph TD
                         node_label = f"{class_name}({inheritance})"
                     else:
                         node_label = class_name
-                    node_id = f"class_{class_name}"
-                    nodes.append(f'{node_id}({node_label})')
+                    # Sanitize node ID and label for Mermaid
+                    safe_node_id = f"class_{class_name}".replace('(', '').replace(')', '').replace('-', '_').replace(' ', '_')
+                    safe_label = node_label.replace('(', '[').replace(')', ']')
+                    nodes.append(f'{safe_node_id}["{safe_label}"]')
                     analysis["classes"].append({"name": class_name, "inheritance": inheritance})
                 
                 # Add control structures with visual styling
                 for i, control in enumerate(controls[:8]):  # Limit to 8 controls
-                    node_id = f"control_{i}"
-                    nodes.append(f'{node_id}({control})')
+                    # Sanitize node ID and label for Mermaid
+                    safe_node_id = f"control_{i}"
+                    safe_label = control.replace('(', '[').replace(')', ']').replace('"', "'")
+                    nodes.append(f'{safe_node_id}["{safe_label}"]')
                     analysis["control_structures"].append(control)
                 
                 # Add imports with visual styling
                 for i, imp in enumerate(imports[:5]):  # Limit to 5 imports
                     module = imp[0] if imp[0] else imp[1]
                     if module:
-                        node_id = f"import_{i}"
-                        nodes.append(f'{node_id}({module})')
+                        # Sanitize node ID and label for Mermaid
+                        safe_node_id = f"import_{i}"
+                        safe_label = module.replace('(', '[').replace(')', ']').replace('"', "'")
+                        nodes.append(f'{safe_node_id}["{safe_label}"]')
                         analysis["imports"].append(module)
                 
                 # Add API endpoints with visual styling
                 for i, endpoint in enumerate(endpoints[:6]):  # Limit to 6 endpoints
-                    node_id = f"endpoint_{i}"
-                    nodes.append(f'{node_id}({endpoint})')
+                    # Sanitize node ID and label for Mermaid
+                    safe_node_id = f"endpoint_{i}"
+                    safe_label = endpoint.replace('(', '[').replace(')', ']').replace('"', "'")
+                    nodes.append(f'{safe_node_id}["{safe_label}"]')
                     analysis["endpoints"].append(endpoint)
                 
                 # Add key variables with visual styling
                 for i, var in enumerate(variables[:5]):  # Limit to 5 variables
                     if var not in ['self', 'cls']:
-                        node_id = f"var_{i}"
-                        nodes.append(f'{node_id}({var})')
+                        # Sanitize node ID and label for Mermaid
+                        safe_node_id = f"var_{i}"
+                        safe_label = var.replace('(', '[').replace(')', ']').replace('"', "'")
+                        nodes.append(f'{safe_node_id}["{safe_label}"]')
                         analysis["variables"].append(var)
                 
                 # Create logical flow connections
                 # Connect functions to their imports
                 for i, func in enumerate(functions[:3]):
                     func_name = func[0]
-                    func_id = f"func_{func_name}"
+                    func_id = f"func_{func_name}".replace('(', '').replace(')', '').replace('-', '_').replace(' ', '_')
                     for j, imp in enumerate(imports[:3]):
                         module = imp[0] if imp[0] else imp[1]
                         if module:
@@ -202,10 +214,10 @@ graph TD
                 # Connect classes to their methods
                 for i, class_info in enumerate(classes[:2]):
                     class_name = class_info[0]
-                    class_id = f"class_{class_name}"
+                    class_id = f"class_{class_name}".replace('(', '').replace(')', '').replace('-', '_').replace(' ', '_')
                     for j, func in enumerate(functions[:2]):
                         func_name = func[0]
-                        func_id = f"func_{func_name}"
+                        func_id = f"func_{func_name}".replace('(', '').replace(')', '').replace('-', '_').replace(' ', '_')
                         edges.append(f'{class_id} --> {func_id}')
                 
                 # Connect control structures in logical flow
@@ -478,9 +490,10 @@ graph TD
             # Add API endpoints with visual styling
             for i, endpoint in enumerate(api_endpoints[:8]):  # Limit to 8 endpoints
                 method = methods[i] if i < len(methods) else "GET"
-                node_id = f"endpoint_{i}"
-                node_label = f"{method.upper()} {endpoint}"
-                mermaid_code += f'    {node_id}({node_label})\n'
+                # Sanitize node ID and label for Mermaid
+                safe_node_id = f"endpoint_{i}"
+                safe_label = f"{method.upper()} {endpoint}".replace('(', '[').replace(')', ']').replace('"', "'")
+                mermaid_code += f'    {safe_node_id}["{safe_label}"]\n'
             
             # If no API endpoints found, create a generic API structure
             if not api_endpoints:
@@ -507,18 +520,24 @@ graph TD
             
             # Add external services with visual styling
             for i, service in enumerate(external_services[:5]):  # Limit to 5 services
-                node_id = f"service_{i}"
-                mermaid_code += f'    {node_id}({service})\n'
+                # Sanitize node ID and label for Mermaid
+                safe_node_id = f"service_{i}"
+                safe_label = service.replace('(', '[').replace(')', ']').replace('"', "'")
+                mermaid_code += f'    {safe_node_id}["{safe_label}"]\n'
             
             # Add internal functions with visual styling
             for i, func in enumerate(internal_functions[:8]):  # Limit to 8 functions
-                node_id = f"func_{i}"
-                mermaid_code += f'    {node_id}({func}())\n'
+                # Sanitize node ID and label for Mermaid
+                safe_node_id = f"func_{i}"
+                safe_label = f"{func}[]".replace('(', '[').replace(')', ']').replace('"', "'")
+                mermaid_code += f'    {safe_node_id}["{safe_label}"]\n'
             
             # Add database operations with visual styling
             for i, db_op in enumerate(db_calls[:5]):  # Limit to 5 DB ops
-                node_id = f"db_{i}"
-                mermaid_code += f'    {node_id}({db_op})\n'
+                # Sanitize node ID and label for Mermaid
+                safe_node_id = f"db_{i}"
+                safe_label = db_op.replace('(', '[').replace(')', ']').replace('"', "'")
+                mermaid_code += f'    {safe_node_id}["{safe_label}"]\n'
             
             # Create logical API flow connections
             mermaid_code += "\n    %% Connections\n"

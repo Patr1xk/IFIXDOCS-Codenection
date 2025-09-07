@@ -40,21 +40,29 @@ const Visualizations = () => {
     
     // Enhanced Mermaid initialization
     if (window.mermaid) {
-      window.mermaid.initialize({ 
-        startOnLoad: false,
-        theme: 'default',
-        securityLevel: 'loose',
-        flowchart: {
-          useMaxWidth: true,
-          htmlLabels: true,
-          curve: 'basis'
-        },
-        graph: {
-          useMaxWidth: true,
-          htmlLabels: true
-        }
-      });
-      console.log('Mermaid initialized successfully');
+      try {
+        window.mermaid.initialize({ 
+          startOnLoad: false,
+          theme: 'default',
+          securityLevel: 'loose',
+          flowchart: {
+            useMaxWidth: true,
+            htmlLabels: true,
+            curve: 'basis'
+          },
+          graph: {
+            useMaxWidth: true,
+            htmlLabels: true
+          },
+          sequence: {
+            useMaxWidth: true,
+            htmlLabels: true
+          }
+        });
+        console.log('Mermaid initialized successfully');
+      } catch (error) {
+        console.error('Mermaid initialization failed:', error);
+      }
     } else {
       console.log('Mermaid not available on window object');
     }
@@ -66,15 +74,28 @@ const Visualizations = () => {
 
       
       // Force Mermaid to reinitialize
-      window.mermaid.initialize({ 
-        startOnLoad: false,
-        theme: 'default',
-        securityLevel: 'loose',
-        flowchart: {
-          useMaxWidth: true,
-          htmlLabels: true
-        }
-      });
+      try {
+        window.mermaid.initialize({ 
+          startOnLoad: false,
+          theme: 'default',
+          securityLevel: 'loose',
+          flowchart: {
+            useMaxWidth: true,
+            htmlLabels: true,
+            curve: 'basis'
+          },
+          graph: {
+            useMaxWidth: true,
+            htmlLabels: true
+          },
+          sequence: {
+            useMaxWidth: true,
+            htmlLabels: true
+          }
+        });
+      } catch (error) {
+        console.error('Mermaid reinitialization failed:', error);
+      }
       
       // Wait for DOM to be ready
       setTimeout(() => {
@@ -93,7 +114,8 @@ const Visualizations = () => {
                   !mermaidCode.startsWith('pie') && !mermaidCode.startsWith('journey') &&
                   !mermaidCode.startsWith('gitgraph') && !mermaidCode.startsWith('C4Context') &&
                   !mermaidCode.startsWith('mindmap') && !mermaidCode.startsWith('timeline') &&
-                  !mermaidCode.startsWith('zenuml') && !mermaidCode.startsWith('sankey')) {
+                  !mermaidCode.startsWith('zenuml') && !mermaidCode.startsWith('sankey') &&
+                  !mermaidCode.startsWith('erDiagram') && !mermaidCode.startsWith('userJourney')) {
                 console.warn('Content is not valid Mermaid code:', mermaidCode.substring(0, 100));
                 return;
               }
@@ -113,18 +135,12 @@ const Visualizations = () => {
                 })
                 .catch((error) => {
                   console.error('Mermaid rendering failed:', error);
-                  if (element && element.parentNode) {
-                    element.innerHTML = '<div class="text-red-500 text-center p-4">Diagram rendering failed. Please try again.</div>';
-                  }
-                })
-                .catch((error) => {
-                  console.warn('Mermaid rendering failed:', error);
                   console.warn('Failed mermaid code:', mermaidCode);
                   // Show error message and raw code
                   if (element && element.parentNode) {
                     element.innerHTML = `
                       <div class="text-center p-4">
-                        <div class="text-red-600 text-sm mb-2">⚠️ Diagram rendering failed</div>
+                        <div class="text-red-600 text-sm mb-2">⚠️ Diagram rendering failed: ${error.message}</div>
                         <pre class="text-xs text-gray-600 bg-gray-100 p-3 rounded border text-left overflow-x-auto">${mermaidCode}</pre>
                       </div>
                     `;

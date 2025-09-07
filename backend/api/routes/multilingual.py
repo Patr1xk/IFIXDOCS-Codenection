@@ -1575,6 +1575,11 @@ class TranslationManager:
         """Simple language detection for demo purposes"""
         content_lower = content.lower()
         
+        # Chinese detection (check for Chinese characters)
+        chinese_chars = sum(1 for char in content if '\u4e00' <= char <= '\u9fff')
+        if chinese_chars > 0:
+            return "zh"
+        
         # Spanish indicators
         spanish_words = ["el", "la", "de", "que", "y", "en", "un", "es", "se", "no", "te", "lo", "le", "da", "su", "por", "son", "con", "para", "al", "del", "los", "las", "una", "como", "más", "pero", "sus", "me", "hasta", "hay", "donde", "han", "quien", "están", "estado", "desde", "todo", "nos", "durante", "todos", "uno", "les", "ni", "contra", "otros", "ese", "eso", "ante", "ellos", "e", "esto", "mí", "antes", "algunos", "qué", "unos", "yo", "otro", "otras", "otra", "él", "tanto", "esa", "estos", "mucho", "quienes", "nada", "muchos", "cual", "poco", "ella", "estar", "estas", "algunas", "algo", "nosotros"]
         
@@ -1596,26 +1601,26 @@ class TranslationManager:
         """Localize content for a specific locale"""
         try:
             # Check if locale is supported
-            if request.locale not in self.supported_languages:
-                raise HTTPException(status_code=400, detail=f"Locale '{request.locale}' not supported")
+            if request.target_locale not in self.supported_languages:
+                raise HTTPException(status_code=400, detail=f"Locale '{request.target_locale}' not supported")
             
             # Use MCP for context-aware localization
             mcp_context = await mcp_client.get_context(
-                f"Localize content for {request.locale}: {request.content[:100]}...",
+                f"Localize content for {request.target_locale}: {request.content[:100]}...",
                 "localization"
             )
             
             # Basic localization (in production, use proper localization services)
             localized_content = self._basic_localize(
                 request.content,
-                request.locale,
+                request.target_locale,
                 request.content_type,
                 request.preserve_technical_terms
             )
             
             return LocalizationResponse(
                 localized_content=localized_content,
-                locale=request.locale,
+                locale=request.target_locale,
                 technical_terms_preserved=["API", "REST", "JSON"],
                 cultural_adaptations=["Date format", "Number format"]
             )
@@ -1631,25 +1636,71 @@ class TranslationManager:
         
         if locale == "es":
             # Spanish localization
+            # General text translations
+            content = content.replace("Hello", "Hola")
+            content = content.replace("World", "Mundo")
+            content = content.replace("Welcome", "Bienvenido")
+            content = content.replace("Thank you", "Gracias")
+            content = content.replace("Please", "Por favor")
+            content = content.replace("Error", "Error")
+            content = content.replace("Success", "Éxito")
+            
             if content_type == "ui":
                 content = content.replace("Install", "Instalar")
                 content = content.replace("Setup", "Configurar")
                 content = content.replace("Help", "Ayuda")
                 content = content.replace("Settings", "Configuración")
+                content = content.replace("Save", "Guardar")
+                content = content.replace("Cancel", "Cancelar")
+                content = content.replace("Delete", "Eliminar")
+                content = content.replace("Edit", "Editar")
             
             # Date format adaptation
             content = content.replace("MM/DD/YYYY", "DD/MM/YYYY")
             
         elif locale == "fr":
             # French localization
+            # General text translations
+            content = content.replace("Hello", "Bonjour")
+            content = content.replace("World", "Monde")
+            content = content.replace("Welcome", "Bienvenue")
+            content = content.replace("Thank you", "Merci")
+            content = content.replace("Please", "S'il vous plaît")
+            content = content.replace("Error", "Erreur")
+            content = content.replace("Success", "Succès")
+            
             if content_type == "ui":
                 content = content.replace("Install", "Installer")
                 content = content.replace("Setup", "Configurer")
                 content = content.replace("Help", "Aide")
                 content = content.replace("Settings", "Paramètres")
+                content = content.replace("Save", "Enregistrer")
+                content = content.replace("Cancel", "Annuler")
+                content = content.replace("Delete", "Supprimer")
+                content = content.replace("Edit", "Modifier")
             
             # Date format adaptation
             content = content.replace("MM/DD/YYYY", "DD/MM/YYYY")
+            
+        elif locale == "zh":
+            # Chinese localization
+            content = content.replace("Hello", "你好")
+            content = content.replace("World", "世界")
+            content = content.replace("Welcome", "欢迎")
+            content = content.replace("Thank you", "谢谢")
+            content = content.replace("Please", "请")
+            content = content.replace("Error", "错误")
+            content = content.replace("Success", "成功")
+            
+            if content_type == "ui":
+                content = content.replace("Install", "安装")
+                content = content.replace("Setup", "设置")
+                content = content.replace("Help", "帮助")
+                content = content.replace("Settings", "设置")
+                content = content.replace("Save", "保存")
+                content = content.replace("Cancel", "取消")
+                content = content.replace("Delete", "删除")
+                content = content.replace("Edit", "编辑")
         
         return content
 

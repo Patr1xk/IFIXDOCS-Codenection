@@ -355,7 +355,8 @@ Please provide an enhanced version with:
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           content: documentContent,
-          target_length: 'long'
+          max_length: 1000,
+          summary_type: 'comprehensive'
         })
       });
       

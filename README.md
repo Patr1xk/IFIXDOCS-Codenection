@@ -75,9 +75,9 @@ MCP_SERVER_URL=http://localhost:8001
 cd ../frontend
 
 # Install dependencies
-npm install
-```
-   
+   npm install
+   ```
+
 ## 🌐 **Access Your Application**
 
 - **Frontend**: http://localhost:5173

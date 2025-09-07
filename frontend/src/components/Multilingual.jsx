@@ -34,8 +34,8 @@ const Multilingual = () => {
 
   const [localizeForm, setLocalizeForm] = useState({
     content: '',
-    targetLocale: 'en',
-    contentType: 'documentation',
+    targetLocale: 'es',
+    contentType: 'text',
     preserveTechnicalTerms: true
   });
 
@@ -731,16 +731,16 @@ const Multilingual = () => {
                     onChange={(e) => setLocalizeForm({...localizeForm, targetLocale: e.target.value})}
                     className="w-full px-4 py-3 border-2 border-secondary-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                   >
-                    <option value="en-US">English (US)</option>
-                    <option value="en-GB">English (UK)</option>
-                    <option value="zh-CN">中文 (简体)</option>
-                    <option value="zh-TW">中文 (繁體)</option>
-                    <option value="ms-MY">Bahasa Melayu (Malaysia)</option>
-                    <option value="ta-IN">தமிழ் (India)</option>
-                    <option value="es-ES">Español (España)</option>
-                    <option value="es-MX">Español (México)</option>
-                    <option value="fr-FR">Français (France)</option>
-                    <option value="de-DE">Deutsch (Deutschland)</option>
+                    <option value="en">English</option>
+                    <option value="es">Español (Spanish)</option>
+                    <option value="fr">Français (French)</option>
+                    <option value="zh">中文 (Chinese)</option>
+                    <option value="de">Deutsch (German)</option>
+                    <option value="ja">日本語 (Japanese)</option>
+                    <option value="ko">한국어 (Korean)</option>
+                    <option value="ar">العربية (Arabic)</option>
+                    <option value="hi">हिन्दी (Hindi)</option>
+                    <option value="pt">Português (Portuguese)</option>
                   </select>
                 </div>
 
