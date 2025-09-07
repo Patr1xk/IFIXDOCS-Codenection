@@ -1,4 +1,4 @@
-# 🚀 **SmartDocs - Intelligent Documentation Assistant**
+# 🚀 **IFastDocs - Intelligent Documentation Assistant**
 
 > **AI-powered documentation platform that simplifies writing, speeds up reading, and makes maintenance easy**
 
@@ -7,11 +7,11 @@
 ### **Track**: Software Track
 ### **Problem Statement**: Industry Collaboration - Fix the Docs: Smarter, Faster, Maintainable Documentation for the Real World by iFAST
 
-**Challenge Addressed**: SmartDocs tackles the real-world documentation challenges faced by development teams, providing intelligent solutions for creating, maintaining, and accessing documentation efficiently.
+**Challenge Addressed**: IFastDocs tackles the real-world documentation challenges faced by development teams, providing intelligent solutions for creating, maintaining, and accessing documentation efficiently.
 
 ## 🎯 **Project Overview**
 
-SmartDocs is a comprehensive documentation platform that addresses real-world documentation challenges:
+IFastDocs is a comprehensive documentation platform that addresses real-world documentation challenges:
 
 - ✅ **Simplify Writing** - Auto-generate docs from GitHub repositories with AI
 - ✅ **Speed Up Reading** - AI-powered summarization, Q&A, and visualizations
