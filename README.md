@@ -226,7 +226,7 @@ This project includes advanced MCP integration for enhanced AI responses:
 - Multiple translation services (Hugging Face, LibreTranslate, MyMemory)
 
 ## 🔑 **API Keys Setup**
-### **Required (Free)**
+### **Required**
 - **Hugging Face**: Get free API key at https://huggingface.co/settings/tokens
 - **GitHub**: Create personal access token at https://github.com/settings/tokens
 
@@ -261,6 +261,3 @@ This project is **production-ready** for hackathons with:
 This project is licensed under the MIT License.
 
 ---
-
-**🚀 Ready to revolutionize documentation? Start your servers and begin building!**
-
